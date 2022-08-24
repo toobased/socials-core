@@ -137,15 +137,11 @@ impl SocialsDb {
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery,
     {
-        let item: T = match collection
+        match collection
             .find_one(query.collect_filters(), query.collect_one_options()).await {
-                Ok(item) => match item {
-                    Some(item) => item,
-                    None => return Err(DbError::not_found(None))
-                },
-                Err(_) => return Err(DbError::not_found(None))
-        };
-        return Ok(Some(item))
+                Ok(item) => Ok(item),
+                Err(_) => Err(DbError::error_while_find())
+        }
     }
 
     pub async fn insert_one<T>(item: impl Borrow<T>, collection: Collection<T>) -> Result<(), DbError>
