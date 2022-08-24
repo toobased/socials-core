@@ -52,7 +52,8 @@ pub struct BotTaskQuery {
     pub status: Option<BotTaskStatus>,
     pub is_active: Option<u8>,
     pub include_hidden: Option<u8>,
-    pub include_selenium_tasks: Option<u8>,
+    pub is_browser: Option<u8>,
+    pub include_browser_tasks: Option<u8>,
     pub sort_by_created_date: Option<i32>,
     pub sort_by_updated_date: Option<i32>,
     pub skip: Option<u64>,
@@ -78,14 +79,9 @@ impl DbQuery for BotTaskQuery {
         if let Some(i) = &self.is_active {
             f.insert("is_active", *i != 0);
         }
-        /*
-        if let Some(i) = &self.include_hidden {
-            if *i != 1 { f.insert("is_hidden", false); }
-        } else {f.insert("is_hidden", false);}
-        if let Some(i) = &self.include_selenium_tasks {
-            if *i != 1 { f.insert("is_selenium", false); }
-        } else {f.insert("is_selenium", false);}
-        */
+        if let Some(_) = &self.is_browser{
+            f.insert("options.is_browser", true);
+        }
         f
     }
 
@@ -132,7 +128,7 @@ pub struct BotTaskOptions {
     pub delete_after_finished: bool,
     pub is_hidden: bool,
     pub is_testing: bool,
-    pub is_selenium: bool,
+    pub is_browser: bool,
 }
 
 impl Default for BotTaskOptions {
@@ -141,7 +137,7 @@ impl Default for BotTaskOptions {
             delete_after_finished: false,
             is_hidden: false,
             is_testing: false,
-            is_selenium: false
+            is_browser: false
         }
     }
 }
@@ -303,8 +299,10 @@ impl BotTask {
             Some(id) => SocialSource::find_by_id(id, db.social_sources())
                 .await.unwrap()
         };
+        // TODO!
         let options = BotTaskOptions {
             is_testing: true,
+            is_browser: true,
             ..Default::default()
         };
         BotTask {

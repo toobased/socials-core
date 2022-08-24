@@ -1,12 +1,16 @@
+use log::info;
+
 use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, like::LikeAction,TaskActionType, TaskActionEnum}, db::{SocialsDb, DbFindResult}};
+use crate::db::DbQuery;
 
 #[tokio::test]
 async fn test_crud() {
+    env_logger::init();
     // test remove tasks
     db_remove_tasks().await;
     // test create
-    db_create_task_json().await;
-    // db_create_task().await;
+    // db_create_task_json().await;
+    db_create_task().await;
     // test find many
     db_get_bots_tasks().await;
     // test update one
@@ -25,16 +29,23 @@ async fn db_remove_tasks() {
 async fn db_create_task() {
     let db = SocialsDb::new_test_instance().await.unwrap();
 
-    let action = crate::tasks::like::LikeAction::default();
+    let action = crate::tasks::watch::WatchAction {
+        data: crate::tasks::watch::WatchTargetData {
+            watch_count: 2,
+            watch_seconds: 2,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
     let new_task = BotTaskCreate {
         is_active: false,
         title: "testing".to_string(),
-        platform: crate::social::SocialPlatform::Vk,
+        platform: crate::social::SocialPlatform::Youtube,
         is_testing: true,
         // new type
         action_type: TaskActionType::Like,
-        action: TaskActionEnum::LikeAction(action),
+        action: TaskActionEnum::WatchAction(action),
         ..Default::default()
     };
     let task: BotTask = BotTask::create_from(&db, new_task).await;
@@ -92,10 +103,12 @@ async fn db_find_one_task() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let query = BotTaskQuery {
         title: Some("testing_stuff_new".to_string()),
+        is_browser: Some(1),
         ..Default::default()
     };
-    println!("query is {:#?}", query);
+    info!("query is {:#?}", query.collect_filters());
     let item = SocialsDb::find_one(query, db.bots_tasks())
         .await.unwrap().unwrap();
+    info!("item is {} {}", item.id, item.title);
     assert_eq!("testing_stuff_new".to_string(), item.title)
 }
