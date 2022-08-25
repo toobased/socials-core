@@ -60,6 +60,15 @@ pub struct BotTaskQuery {
     pub limit: Option<i64>
 }
 
+impl BotTaskQuery {
+    pub fn is_active(&mut self) { self.status = Some(BotTaskStatus::Active) }
+    pub fn is_finished(&mut self) { self.status = Some(BotTaskStatus::Finished) }
+    pub fn is_browser(&mut self) { self.is_browser = Some(1) }
+    pub fn not_browser(&mut self) { self.is_browser = Some(0) }
+    pub fn top_old_updated(&mut self) { self.sort_by_updated_date = Some(1) }
+    pub fn top_fresh_updated(&mut self) { self.sort_by_updated_date = Some(-1) }
+}
+
 impl DbQuery for BotTaskQuery {
 
     fn collect_filters(&self) -> Document {
@@ -79,8 +88,13 @@ impl DbQuery for BotTaskQuery {
         if let Some(i) = &self.is_active {
             f.insert("is_active", *i != 0);
         }
-        if let Some(_) = &self.is_browser{
-            f.insert("options.is_browser", true);
+        if let Some(i) = &self.is_browser{
+            let b = match i {
+                0 => false,
+                1 => true,
+                _ => false
+            };
+            f.insert("options.is_browser", b);
         }
         f
     }
