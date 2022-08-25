@@ -61,6 +61,7 @@ pub struct BotTaskQuery {
 }
 
 impl BotTaskQuery {
+    pub fn new() -> Self { Self::default() }
     pub fn is_active(&mut self) { self.status = Some(BotTaskStatus::Active) }
     pub fn is_finished(&mut self) { self.status = Some(BotTaskStatus::Finished) }
     pub fn is_browser(&mut self) { self.is_browser = Some(1) }
