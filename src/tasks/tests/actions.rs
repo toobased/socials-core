@@ -21,7 +21,7 @@ async fn test_task_watch () {
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
             watch_count: 0,
-            watch_seconds: 10,
+            watch_seconds: 5,
             time_spread: 0, // 3600 - 60 minutes for task
             resource_link: "https://www.youtube.com/watch?v=zuL55W3Ivtk&t=3s".to_string(),
             ..Default::default()
@@ -45,7 +45,7 @@ async fn test_task_watch_db () {
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
             watch_count: 2,
-            watch_seconds: 1,
+            watch_seconds: 5,
             time_spread: 0, // 3600 - 60 minutes for task
             resource_link: "https://www.youtube.com/watch?v=zuL55W3Ivtk&t=3s".to_string(),
             ..Default::default()

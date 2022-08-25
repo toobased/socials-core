@@ -32,7 +32,7 @@ async fn db_create_task() {
     let action = crate::tasks::watch::WatchAction {
         data: crate::tasks::watch::WatchTargetData {
             watch_count: 2,
-            watch_seconds: 2,
+            watch_seconds: 5,
             time_spread: 10,
             ..Default::default()
         },
@@ -68,7 +68,7 @@ async fn db_create_task_json() {
                 "target": "Video",
                 "data": {
                     "watch_count": 5,
-                    "watch_seconds": 20,
+                    "watch_seconds": 5,
                     "resource_link": "https://www.youtube.com/watch?v=zuL55W3Ivtk"
                 }
             }
