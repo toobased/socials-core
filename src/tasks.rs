@@ -293,7 +293,7 @@ impl BotTask {
     }
 
     // TODO convert into result?
-    async fn create_from(db: &SocialsDb, t: BotTaskCreate) -> BotTask {
+    pub async fn create_from(db: &SocialsDb, t: BotTaskCreate) -> BotTask {
         let social_source = match t.social_source_id {
             None => None,
             Some(id) => SocialSource::find_by_id(id, db.social_sources())
