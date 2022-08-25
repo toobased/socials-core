@@ -58,7 +58,7 @@ impl BrowserCore {
         let mut client = ClientBuilder::native();
         let capabilities = r#"{
                 "moz:firefoxOptions": {
-                "args": [],
+                "args": ["-headless"],
                 "prefs": {
                     "media.volume_scale": "0.0"
                 },
