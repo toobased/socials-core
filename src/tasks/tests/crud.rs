@@ -33,6 +33,7 @@ async fn db_create_task() {
         data: crate::tasks::watch::WatchTargetData {
             watch_count: 2,
             watch_seconds: 2,
+            time_spread: 10,
             ..Default::default()
         },
         ..Default::default()
@@ -44,7 +45,7 @@ async fn db_create_task() {
         platform: crate::social::SocialPlatform::Youtube,
         is_testing: true,
         // new type
-        action_type: TaskActionType::Like,
+        action_type: TaskActionType::Watch,
         action: TaskActionEnum::WatchAction(action),
         ..Default::default()
     };

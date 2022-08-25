@@ -58,7 +58,7 @@ impl BrowserCore {
         let mut client = ClientBuilder::native();
         let capabilities = r#"{
                 "moz:firefoxOptions": {
-                "args": ["-headless"],
+                "args": [],
                 "prefs": {
                     "media.volume_scale": "0.0"
                 },
@@ -85,7 +85,7 @@ impl BrowserCore {
         // listener.set_nonblocking(true).unwrap();
         // let port = listener.local_addr().unwrap().port().to_string();
         let port = BrowserCore::get_free_port().expect("Cant get free port");
-        // let port = "4445";
+        info!("Port will be used: {}", port);
         let webdriver = Self::init_driver(&port).await;
         Self {
             webdriver_process: webdriver,
