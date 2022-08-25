@@ -4,7 +4,7 @@ use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, like::LikeAction,TaskA
 use crate::db::DbQuery;
 
 #[tokio::test]
-async fn test_crud() {
+pub async fn test_crud() {
     env_logger::init();
     // test remove tasks
     db_remove_tasks().await;
@@ -19,14 +19,14 @@ async fn test_crud() {
     db_find_one_task().await;
 }
 
-async fn db_remove_tasks() {
+pub async fn db_remove_tasks() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     SocialsDb::delete_many(
         BotTaskQuery::default(), db.bots_tasks()
     ).await.expect("Some error while deleting");
 }
 
-async fn db_create_task() {
+pub async fn db_create_task() {
     let db = SocialsDb::new_test_instance().await.unwrap();
 
     let action = crate::tasks::watch::WatchAction {
@@ -55,7 +55,7 @@ async fn db_create_task() {
 }
 
 // #[tokio::test]
-async fn db_create_task_json() {
+pub async fn db_create_task_json() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let task_raw = r#"{
         "is_active": false,
@@ -83,14 +83,14 @@ async fn db_create_task_json() {
 }
 
 // #[tokio::test]
-async fn db_get_bots_tasks() -> DbFindResult<BotTask> {
+pub async fn db_get_bots_tasks() -> DbFindResult<BotTask> {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let query = BotTaskQuery::default();
     SocialsDb::find(query, db.bots_tasks()).await.unwrap()
 }
 
 // #[tokio::test]
-async fn db_update_by_id_task() {
+pub async fn db_update_by_id_task() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let mut find_result = db_get_bots_tasks().await;
     let task = find_result.items.get_mut(0).unwrap();
@@ -100,7 +100,7 @@ async fn db_update_by_id_task() {
 }
 
 // #[tokio::test]
-async fn db_find_one_task() {
+pub async fn db_find_one_task() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let query = BotTaskQuery {
         title: Some("testing_stuff_new".to_string()),
