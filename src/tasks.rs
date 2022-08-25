@@ -62,12 +62,12 @@ pub struct BotTaskQuery {
 
 impl BotTaskQuery {
     pub fn new() -> Self { Self::default() }
-    pub fn is_active(&mut self) { self.status = Some(BotTaskStatus::Active) }
-    pub fn is_finished(&mut self) { self.status = Some(BotTaskStatus::Finished) }
-    pub fn is_browser(&mut self) { self.is_browser = Some(1) }
-    pub fn not_browser(&mut self) { self.is_browser = Some(0) }
-    pub fn top_old_updated(&mut self) { self.sort_by_updated_date = Some(1) }
-    pub fn top_fresh_updated(&mut self) { self.sort_by_updated_date = Some(-1) }
+    pub fn is_active(&mut self) -> &mut Self { self.status = Some(BotTaskStatus::Active); self }
+    pub fn is_finished(&mut self) -> &mut Self { self.status = Some(BotTaskStatus::Finished); self }
+    pub fn is_browser(&mut self) -> &mut Self { self.is_browser = Some(1); self }
+    pub fn not_browser(&mut self) -> &mut Self { self.is_browser = Some(0); self }
+    pub fn top_old_updated(&mut self) -> &mut Self { self.sort_by_updated_date = Some(1); self }
+    pub fn top_fresh_updated(&mut self) -> &mut Self { self.sort_by_updated_date = Some(-1); self }
 }
 
 impl DbQuery for BotTaskQuery {
