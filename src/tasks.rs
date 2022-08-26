@@ -4,9 +4,9 @@ use bson::{Document, Uuid};
 use mongodb::options::FindOptions;
 use serde::{Serialize, Deserialize};
 use serde_json::to_value;
-use log::{warn, info};
+use log::info;
 
-use crate::{db::{DbQuery, SocialsDb, errors::DbError}, social::{SocialPlatform, SocialCore, VkCore, OkCore, source::SocialSource, YtCore}, browser_core::BrowserCore};
+use crate::{db::{DbQuery, SocialsDb, errors::DbError}, social::{SocialPlatform, SocialCore, VkCore, OkCore, source::SocialSource, YtCore}};
 
 use self::{like::LikeAction, watch::WatchAction, errors::TaskError};
 
@@ -192,7 +192,8 @@ impl TaskActionEnum {
             _ => (),
         }
     }
-    fn use_browser(&self) -> bool {
+
+    pub fn use_browser(&self) -> bool {
         match self {
             Self::LikeAction(a) => a.use_browser(),
             Self::WatchAction(a) => a.use_browser(),
@@ -251,7 +252,7 @@ impl BotTask {
 
     pub async fn update_db(&mut self, db: &SocialsDb) 
         -> Result<mongodb::results::UpdateResult, DbError> {
-        SocialsDb::update_by_id(self.id, self, db.bots_tasks()).await
+        SocialsDb::update_by_id(self.id, self, &db.bots_tasks()).await
     }
 
     async fn make_v2(&mut self) {

@@ -1,4 +1,4 @@
-use crate::{tasks::{BotTask, BotTaskCreate, TaskActionType, like::LikeAction, TaskActionEnum, watch::{WatchAction, WatchTargetData}, BotTaskQuery}, db::{SocialsDb, errors::DbError}, social::SocialPlatform};
+use crate::{tasks::{BotTask, BotTaskCreate, TaskActionType, TaskActionEnum, watch::{WatchAction, WatchTargetData}, BotTaskQuery}, db::SocialsDb, social::SocialPlatform};
 
 #[tokio::test]
 async fn test_task_actions () {
@@ -8,14 +8,14 @@ async fn test_task_actions () {
     test_task_watch_db().await;
 }
 
-async fn db_remove_tasks() {
+pub async fn db_remove_tasks() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     SocialsDb::delete_many(
-        BotTaskQuery::default(), db.bots_tasks()
+        &BotTaskQuery::default(), &db.bots_tasks()
     ).await.expect("Some error while deleting");
 }
 
-async fn test_task_watch () {
+pub async fn test_task_watch () {
     env_logger::init();
     let db = SocialsDb::new_test_instance().await.unwrap();
     let action = TaskActionEnum::WatchAction(WatchAction {
@@ -38,7 +38,7 @@ async fn test_task_watch () {
     task.make().await;
 }
 
-async fn test_task_watch_db () {
+pub async fn test_task_watch_db () {
     env_logger::init();
     let db = SocialsDb::new_test_instance()
         .await.unwrap();

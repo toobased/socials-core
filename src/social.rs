@@ -2,27 +2,18 @@ use fantoccini::Locator;
 use log::info;
 use serde::{Serialize, Deserialize};
 
-use crate::{tasks::{BotTask, TaskActionType, TaskAction, TaskActionEnum, like::LikeAction, watch::WatchAction, errors::TaskError}, browser_core::BrowserCore, db::SocialsDb};
-use std::{fmt::Display, thread, time::Duration};
+use crate::{tasks::{BotTask, TaskAction, TaskActionEnum, like::LikeAction, watch::WatchAction, errors::TaskError}, browser_core::BrowserCore};
+use std::time::Duration;
 use async_trait::async_trait;
 
 pub mod source;
 
 #[async_trait]
 pub trait SocialCore {
-    // TODO replace to display
     fn info(&self) -> String;
-    /*
-    fn make_action(&self, task: &mut BotTask) {
-        match task.action_type {
-            TaskActionType::Like => println!("need like"),
-            // task.actions.like.do_stuff(),
-            _ => println!("unimplemented shit")
-        }
-    }
-    */
+
     async fn make_action(&self, task: &mut BotTask) {
-        let mut action = task.action.clone();
+        let action = task.action.clone();
         match action {
             TaskActionEnum::LikeAction(a) => self.like(a, task),
             TaskActionEnum::WatchAction(a) => self.watch(a, task).await,
@@ -30,9 +21,9 @@ pub trait SocialCore {
         };
     }
 
-    fn like(&self, action: LikeAction, task: &mut BotTask) {}
+    fn like(&self, _action: LikeAction, _task: &mut BotTask) {}
 
-    async fn watch(&self, action: WatchAction, task: &mut BotTask) {
+    async fn watch(&self, _action: WatchAction, _task: &mut BotTask) {
         info!("Run watch action from trait. Not implemented yet. Core: {}", self.info())
     }
 }
@@ -151,7 +142,7 @@ impl SocialCore for OkCore {
   fn info(&self) -> String {
     "OkCore".to_string()
   }
-  fn like(&self, action: LikeAction, task: &mut BotTask) {
+  fn like(&self, _action: LikeAction, _task: &mut BotTask) {
       println!("run for ok platform")
   }
 }
@@ -160,7 +151,7 @@ impl SocialCore for VkCore {
   fn info(&self) -> String {
     "VkCore".to_string()
   }
-  fn like(&self, action: LikeAction, task: &mut BotTask) {
+  fn like(&self, _action: LikeAction, _task: &mut BotTask) {
       println!("run for vk platform")
   }
 }

@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, like::LikeAction,TaskActionType, TaskActionEnum}, db::{SocialsDb, DbFindResult}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum}, db::{SocialsDb, DbFindResult}};
 use crate::db::DbQuery;
 
 #[tokio::test]
@@ -22,7 +22,7 @@ pub async fn test_crud() {
 pub async fn db_remove_tasks() {
     let db = SocialsDb::new_test_instance().await.unwrap();
     SocialsDb::delete_many(
-        BotTaskQuery::default(), db.bots_tasks()
+        &BotTaskQuery::default(), &db.bots_tasks()
     ).await.expect("Some error while deleting");
 }
 
@@ -86,7 +86,7 @@ pub async fn db_create_task_json() {
 pub async fn db_get_bots_tasks() -> DbFindResult<BotTask> {
     let db = SocialsDb::new_test_instance().await.unwrap();
     let query = BotTaskQuery::default();
-    SocialsDb::find(query, db.bots_tasks()).await.unwrap()
+    SocialsDb::find(&query, &db.bots_tasks()).await.unwrap()
 }
 
 // #[tokio::test]
@@ -95,7 +95,7 @@ pub async fn db_update_by_id_task() {
     let mut find_result = db_get_bots_tasks().await;
     let task = find_result.items.get_mut(0).unwrap();
     task.title = "testing_stuff_new".to_string();
-    let item = SocialsDb::update_by_id(task.id, task, db.bots_tasks())
+    let _item = SocialsDb::update_by_id(task.id, task, &db.bots_tasks())
         .await.unwrap();
 }
 
@@ -108,7 +108,7 @@ pub async fn db_find_one_task() {
         ..Default::default()
     };
     info!("query is {:#?}", query.collect_filters());
-    let item = SocialsDb::find_one(query, db.bots_tasks())
+    let item = SocialsDb::find_one(&query, &db.bots_tasks())
         .await.unwrap().unwrap();
     info!("item is {} {}", item.id, item.title);
     assert_eq!("testing_stuff_new".to_string(), item.title)

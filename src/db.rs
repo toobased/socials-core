@@ -4,7 +4,7 @@
 use std::{borrow::Borrow, env};
 
 use bson::Document;
-use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions, UpdateModifications }};
+use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions }};
 use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -110,7 +110,7 @@ impl SocialsDb {
       return Ok(db_client)
     }
 
-    pub async fn find<T, Q>(query: Q, collection: Collection<T>) -> Result<DbFindResult<T>, DbError>
+    pub async fn find<T, Q>(query: &Q, collection: &Collection<T>) -> Result<DbFindResult<T>, DbError>
     where
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery,
@@ -132,7 +132,7 @@ impl SocialsDb {
         Ok(res)
     }
 
-    pub async fn find_one<T, Q>(query: Q, collection: Collection<T>) -> Result<Option<T>, DbError>
+    pub async fn find_one<T, Q>(query: &Q, collection: &Collection<T>) -> Result<Option<T>, DbError>
     where
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery,
@@ -154,7 +154,7 @@ impl SocialsDb {
         }
     }
 
-    pub async fn update_by_id<T>(id: bson::Uuid, item: &mut T, collection: Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
+    pub async fn update_by_id<T>(id: bson::Uuid, item: &mut T, collection: &Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
     where
         T: Serialize,
     {
@@ -166,7 +166,7 @@ impl SocialsDb {
         }
     }
 
-    pub async fn delete_many<T, Q>(query: Q, collection: Collection<T>) -> Result<mongodb::results::DeleteResult, DbError>
+    pub async fn delete_many<T, Q>(query: &Q, collection: &Collection<T>) -> Result<mongodb::results::DeleteResult, DbError>
     where
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery

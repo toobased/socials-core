@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
 use bson::Document;
 use mongodb::Collection;
 use serde::{Serialize, Deserialize };
-use serde_json::to_value;
+// use serde_json::to_value;
 
 use crate::db::{DbQuery, SocialsDb, errors::DbError};
 
@@ -58,7 +58,7 @@ impl SocialSource {
     pub async fn find_by_id(id: bson::Uuid, collection: Collection<SocialSource>) -> Result<Option<SocialSource>, DbError> {
         let query = SocialSourceQuery { id: Some(id), ..Default::default()};
         println!("query is {:#?}", query.collect_filters());
-        let result = SocialsDb::find_one(query, collection).await;
+        let result = SocialsDb::find_one(&query, &collection).await;
         result
     }
 }

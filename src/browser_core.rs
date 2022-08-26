@@ -1,31 +1,18 @@
-use std::{net::{SocketAddr, IpAddr, Ipv4Addr, TcpListener}, process};
+use std::{net::TcpListener, process};
 
 use async_trait::async_trait;
 use log::info;
 
-use crate::{social::SocialCore, tasks::{BotTask, watch::WatchAction}};
-use fantoccini::{ClientBuilder, Locator, wd::Capabilities};
+use crate::social::SocialCore;
+use fantoccini::ClientBuilder;
 
 pub struct BrowserCore {
     webdriver_process: process::Child,
-    // listener: TcpListener,
     pub client: fantoccini::Client
 }
 
 impl BrowserCore {
     pub async fn new () -> Self { Self::init().await }
-
-    /*
-    fn get_listener () -> Option<TcpListener> {
-        for port in 4446..5000 {
-            match TcpListener::bind(("127.0.0.1", port)) {
-                Ok(l) => return Some(l),
-                _ => {}
-            }
-        }
-        None
-    }
-    */
 
     fn get_free_port () -> Option<String> {
         for port in 4446..5000 {

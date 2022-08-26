@@ -48,10 +48,10 @@ pub struct LikeAction {
 }
 
 impl TaskAction for LikeAction {
-    fn calc_next_time_run(&self, task: &mut BotTask) {
+    fn calc_next_time_run(&self, _task: &mut BotTask) {
         info!("check need run for like post");
     }
-    fn calc_need_do_now(&self, task: &BotTask) -> u64 {
+    fn calc_need_do_now(&self, _task: &BotTask) -> u64 {
         10
     }
 
