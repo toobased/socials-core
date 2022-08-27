@@ -22,7 +22,7 @@ pub trait DbQuery {
     fn collect_one_options(&self) -> FindOneOptions { FindOneOptions::default() }
 }
 
-struct DummyQuery;
+pub struct DummyQuery;
 impl Default for DummyQuery {
     fn default() -> Self { Self }
 }
