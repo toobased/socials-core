@@ -26,7 +26,7 @@ pub async fn create_social_source () {
         ..Default::default()
     };
     SocialsDb::insert_one(source, db.social_sources())
-        .await.unwrap()
+        .await.unwrap();
 }
 
 pub async fn create_social_source_json () {
@@ -40,7 +40,7 @@ pub async fn create_social_source_json () {
     }"#;
     let source = serde_json::from_str::<SocialSource>(source_raw).expect("Cant parse social source from raw json");
     SocialsDb::insert_one(source, db.social_sources())
-        .await.unwrap()
+        .await.unwrap();
 }
 
 pub async fn get_social_sources () {
