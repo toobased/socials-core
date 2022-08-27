@@ -1,6 +1,8 @@
 use std::fmt;
 
-#[derive(Debug, Clone)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, Serialize)]
 pub enum DbErrorKind {
     NoDbConnectionString,
     NoDbName,
@@ -15,7 +17,8 @@ pub enum DbErrorKind {
     NotFound
 }
 
-#[derive(Clone, Debug)]
+// TODO make serializable
+#[derive(Clone, Debug, Serialize)]
 pub struct DbError {
     pub kind: DbErrorKind,
     pub msg: String,

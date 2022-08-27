@@ -144,12 +144,12 @@ impl SocialsDb {
         }
     }
 
-    pub async fn insert_one<T>(item: impl Borrow<T>, collection: Collection<T>) -> Result<(), DbError>
+    pub async fn insert_one<T>(item: impl Borrow<T>, collection: Collection<T>) -> Result<mongodb::results::InsertOneResult, DbError>
     where
         T: Serialize,
     {
         match collection.insert_one(item, None).await  {
-            Ok(_) => Ok(()),
+            Ok(result) => Ok(result),
             Err(_) => Err(DbError::insert_error(None))
         }
     }
