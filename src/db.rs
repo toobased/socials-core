@@ -15,45 +15,18 @@ use self::errors::DbError;
 
 pub mod errors;
 
-/*
-// TODO fucking async trait / return Future??
-struct FindByIdQuery {
-    id: bson::Uuid
-}
-
-pub trait FindById {
-    fn find_by_id<T>(id: bson::Uuid, collection: Collection<T>) -> impl futures::Future<Output = Result<Option<T>, ()>>
-    where
-        T: DeserializeOwned + Unpin + Send + Sync
-    {
-        let query = FindByIdQuery {id}; 
-        let result = SocialsDb::find_one(query, collection);
-        Ok(Some(result))
-    }
-}
-*/
-
-/*
-#[async_trait]
-pub trait DBActions {
-    async fn insert_db<T>(&self, item: T) -> Result<(), ()>
-        where
-        T: Serialize
-    {
-        SocialsDb::insert_one(item).await
-    }
-    fn get_collection<T>(db: &SocialsDb) -> Collection<T>;
-    // pub async fn insert_one<T>(item: impl Borrow<T>, collection: Collection<T>) -> Result<(), ()>
-}
-*/
-
-
 pub trait DbQuery {
     fn collect_filters(&self) -> Document { Document::new() }
     fn collect_sorting(&self) -> Document { Document::new() }
     fn collect_options(&self) -> FindOptions { FindOptions::default() }
     fn collect_one_options(&self) -> FindOneOptions { FindOneOptions::default() }
 }
+
+struct DummyQuery;
+impl Default for DummyQuery {
+    fn default() -> Self { Self }
+}
+impl DbQuery for DummyQuery {}
 
 #[derive(Serialize)]
 pub struct DbFindResult<T> {
