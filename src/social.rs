@@ -114,17 +114,8 @@ pub trait SocialCore {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum SocialPlatform {
-    Unspecified,
-    Vk,
-    Ok,
-    Instagram,
-    Youtube,
-    Dzen
-}
+pub enum SocialPlatform { Unspecified, Vk, Ok, Instagram, Youtube, Dzen }
 
 impl Default for SocialPlatform {
-    fn default() -> Self {
-        Self::Unspecified
-    }
+    fn default() -> Self { Self::Unspecified }
 }

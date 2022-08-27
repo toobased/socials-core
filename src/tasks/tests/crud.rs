@@ -1,10 +1,10 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum}, db::{SocialsDb, DbFindResult}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult}};
 use crate::db::DbQuery;
 
 #[tokio::test]
-pub async fn test_crud() {
+pub async fn test_tasks_crud() {
     env_logger::init();
     // test remove tasks
     db_remove_tasks().await;
@@ -17,6 +17,26 @@ pub async fn test_crud() {
     db_update_by_id_task().await;
     // test find one
     db_find_one_task().await;
+}
+
+#[tokio::test]
+pub async fn test_tasks_types_crud () {
+    // db_remove_tasks().await;
+    db_create_task_type().await
+}
+
+pub async fn db_create_task_type() {
+    let db = SocialsDb::new_test_instance().await.unwrap();
+    let traw = r#"{
+        "action_type": "Watch",
+        "name": "Watch action",
+        "targets": [
+            {"target": "Video", "platforms": ["Youtube", "Dzen"]}
+        ],
+        "is_active": true
+    }"#;
+    let target = serde_json::from_str::<BotTaskType>(traw).unwrap();
+    SocialsDb::insert_one(target, db.task_types()).await.unwrap();
 }
 
 pub async fn db_remove_tasks() {

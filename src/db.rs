@@ -4,12 +4,12 @@
 use std::{borrow::Borrow, env};
 
 use bson::Document;
-use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions }};
+use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions }, Database};
 use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
 
-use crate::{tasks::BotTask, social::source::SocialSource};
+use crate::{tasks::{BotTask, BotTaskType}, social::source::SocialSource};
 
 use self::errors::DbError;
 
@@ -68,14 +68,20 @@ pub struct SocialsDb {
 }
 
 impl SocialsDb {
+    pub fn get_db(&self) -> Database {
+        self.client.clone().database(&self.db_name)
+    }
     pub fn collection<T>(&self, name: &str) -> Collection<T> {
-        self.client.clone().database(&self.db_name).collection(name)
+        self.get_db().collection(name)
     }
     pub fn bots_tasks(&self) -> Collection<BotTask> {
-        self.client.clone().database(&self.db_name).collection("bots_tasks")
+        self.get_db().collection("bots_tasks")
     }
     pub fn social_sources(&self) -> Collection<SocialSource> {
-        self.client.clone().database(&self.db_name).collection("social_sources")
+        self.get_db().collection("social_sources")
+    }
+    pub fn task_types(&self) -> Collection<BotTaskType> {
+        self.get_db().collection("task_types")
     }
 
     pub async fn new_instance () -> Result<SocialsDb, DbError> {

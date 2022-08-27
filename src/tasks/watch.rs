@@ -3,18 +3,9 @@ use std::time::{SystemTime, Duration};
 use log::info;
 use serde::{Serialize, Deserialize};
 
-use super::{TaskAction, BotTask};
+use super::{TaskAction, BotTask, TaskTarget};
 
 // use super::{TaskAction, BotTask};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum WatchTarget { 
-    Video
-}
-
-impl Default for WatchTarget {
-    fn default() -> Self { Self::Video }
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WatchTargetData {
@@ -58,7 +49,7 @@ impl Default for WatchSettings {
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct WatchAction {
-    pub target: WatchTarget,
+    pub target: TaskTarget,
     pub data: WatchTargetData,
     #[serde(default="WatchStats::default")]
     pub stats: WatchStats,

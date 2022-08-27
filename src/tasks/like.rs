@@ -3,23 +3,12 @@ use std::time::SystemTime;
 use log::info;
 use serde::{Serialize, Deserialize};
 
-use super::{TaskAction, BotTask};
+use super::{TaskAction, BotTask, TaskTarget};
 
 // use super::{TaskAction, BotTask};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum LikeTarget {
-    Dummy
-}
-
-impl Default for LikeTarget {
-    fn default() -> Self {
-        Self::Dummy
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct LikeTargetData {
+pub struct TaskTargetData {
     like_count: i32,
     like_random_threshold: i32,
     /// for bulk like account / group
@@ -40,9 +29,9 @@ pub struct LikeSettings {
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 // TODO make parse some field auto on json parsing
 pub struct LikeAction {
-    #[serde(default="LikeTarget::default")]
-    pub target: LikeTarget,
-    pub data: LikeTargetData,
+    #[serde(default="TaskTarget::default")]
+    pub target: TaskTarget,
+    pub data: TaskTargetData,
     pub stats: LikeStats,
     pub settings: LikeSettings
 }
