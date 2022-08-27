@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::to_value;
 use log::info;
 
-use crate::{db::{DbQuery, SocialsDb, errors::DbError}, social::{SocialPlatform, SocialCore, VkCore, OkCore, source::SocialSource, YtCore}};
+use crate::{db::{DbQuery, SocialsDb, errors::DbError}, social::{SocialPlatform, SocialCore, vk_core::VkCore, ok_core::OkCore, source::SocialSource, yt_core::YtCore, dzen_core::DzenCore}};
 
 use self::{like::LikeAction, watch::WatchAction, errors::TaskError};
 
@@ -267,12 +267,13 @@ impl BotTask {
         let vk_core = VkCore::new();
         let ok_core = OkCore::new();
         let yt_core = YtCore::new();
-        // let browser_core = BrowserCore::new();
+        let dzen_core = DzenCore::new();
 
         match self.platform {
             SocialPlatform::Vk => vk_core.make_action(self).await,
             SocialPlatform::Ok => ok_core.make_action(self).await,
             SocialPlatform::Youtube => yt_core.make_action(self).await,
+            SocialPlatform::Dzen => dzen_core.make_action(self).await,
             _ => info!("{:#?} not implemented yet", self.platform)
         }
 

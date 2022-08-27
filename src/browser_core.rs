@@ -1,9 +1,6 @@
 use std::{net::TcpListener, process};
 
-use async_trait::async_trait;
 use log::info;
-
-use crate::social::SocialCore;
 use fantoccini::ClientBuilder;
 
 pub struct BrowserCore {
@@ -43,9 +40,10 @@ impl BrowserCore {
 
     async fn init_client (port: &str) -> fantoccini::Client {
         let mut client = ClientBuilder::native();
+        // "args": ["-headless"],
         let capabilities = r#"{
                 "moz:firefoxOptions": {
-                "args": ["-headless"],
+                "args": [],
                 "prefs": {
                     "media.volume_scale": "0.0"
                 },
@@ -94,12 +92,5 @@ impl BrowserCore {
         let mut process = self.webdriver_process;
         BrowserCore::close_client(self.client).await;
         BrowserCore::close_webdriver(&mut process).await;
-    }
-}
-
-#[async_trait]
-impl SocialCore for BrowserCore {
-    fn info (&self) -> String {
-        "BrowserCore".to_string()
     }
 }

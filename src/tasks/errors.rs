@@ -7,7 +7,8 @@ pub enum TaskErrorKind {
     Db,
     IncorrectData,
     ActionError,
-    Dummy
+    Dummy,
+    NotImplemented
 }
 
 impl Default for TaskErrorKind {
@@ -38,6 +39,14 @@ impl TaskError {
     }
     pub fn element_click(info: Option<&str>) -> Self {
         let msg = info.unwrap_or("Cant click on element").to_string();
+        Self::action_error(Some(msg), None)
+    }
+    pub fn task_not_implemented() -> Self {
+        let msg = "Task action not implemented yet".to_string();
+        Self::action_error(Some(msg), None)
+    }
+    pub fn dummy () -> Self {
+        let msg = "Just dummy error here".to_string();
         Self::action_error(Some(msg), None)
     }
 }
