@@ -6,6 +6,7 @@ use crate::browser_core::BrowserCore;
 
 #[tokio::test]
 pub async fn test_browser_processes ()  {
+    env_logger::init();
     info!("Run test browser processes");
     test_zombie().await;
     let after_sleep: u64 = 30;
