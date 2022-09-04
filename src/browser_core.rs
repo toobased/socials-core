@@ -65,7 +65,7 @@ impl BrowserCore {
         let cap = serde_json::from_str(capabilities).unwrap();
         client.capabilities(cap);
 
-        let mut url: String = "http://localhost:".to_string();
+        let mut url: String = "http://127.0.0.1:".to_string();
         url.push_str(port);
         debug!("connection url is {}", url);
         let client = client
