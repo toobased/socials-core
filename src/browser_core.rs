@@ -1,7 +1,11 @@
-use std::{net::TcpListener, process};
+use std::net::TcpListener;
 
 use log::info;
 use fantoccini::ClientBuilder;
+use tokio::process;
+
+#[cfg(test)]
+pub mod tests;
 
 pub struct BrowserCore {
     webdriver_process: process::Child,
@@ -21,7 +25,7 @@ impl BrowserCore {
         None
     }
 
-    async fn init_driver (port: &str) -> process::Child {
+    fn init_driver (port: &str) -> process::Child {
         // run webdriver instance on auto-port
         let res = process::Command::new("geckodriver")
             .arg("--log")
@@ -71,7 +75,7 @@ impl BrowserCore {
         // let port = listener.local_addr().unwrap().port().to_string();
         let port = BrowserCore::get_free_port().expect("Cant get free port");
         info!("Port will be used: {}", port);
-        let webdriver = Self::init_driver(&port).await;
+        let webdriver = Self::init_driver(&port);
         Self {
             webdriver_process: webdriver,
             // listener,
@@ -84,7 +88,7 @@ impl BrowserCore {
     }
 
     pub async fn close_webdriver(process: &mut process::Child) {
-        process.kill().expect("Failed to kill webdriver process.");
+        process.kill().await.expect("Failed to kill webdriver process.");
     }
 
     pub async fn close (self) {

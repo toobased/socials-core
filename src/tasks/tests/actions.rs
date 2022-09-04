@@ -3,9 +3,9 @@ use crate::{tasks::{BotTask, BotTaskCreate, TaskActionType, TaskActionEnum, watc
 #[tokio::test]
 async fn test_task_actions () {
     // test_task_like().await;
-    // test_task_watch().await;
+    test_task_watch().await;
     db_remove_tasks().await;
-    test_task_watch_db().await;
+    // est_task_watch_db().await;
 }
 
 pub async fn db_remove_tasks() {
