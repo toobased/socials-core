@@ -4,6 +4,7 @@
 use std::{borrow::Borrow, env};
 
 use bson::Document;
+use log::debug;
 use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions }, Database};
 use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, Serialize};
@@ -57,23 +58,23 @@ impl SocialsDb {
         self.get_db().collection("task_types")
     }
 
-    pub async fn new_instance () -> Result<SocialsDb, DbError> {
-        Self::new_test_instance().await
-    }
-
-    pub async fn new_test_instance () -> Result<SocialsDb, DbError> {
+    async fn make_instance (
+        connection_env_key: &str,
+        db_name_env_key: &str
+    ) -> Result<SocialsDb, DbError> {
+        // Self::new_test_instance().await
         // parse db connection string
-        let connection_string = match env::var("mongo_test_connection") {
+        let connection_string = match env::var(connection_env_key) {
             Ok(c) => c,
             Err(_) => return Err(DbError::db_connection_string())
         };
         // parse db name
-        let db_name = match env::var("socials_test_db") {
+        let db_name = match env::var(db_name_env_key) {
             Ok(c) => c,
             Err(_) => return Err(DbError::db_name())
         };
         // parse connection string
-        let client_options = match ClientOptions::parse(connection_string).await {
+        let client_options = match ClientOptions::parse(&connection_string).await {
             Ok(c) => c,
             Err(_) => return Err(DbError::invalid_connection_string())
         };
@@ -82,11 +83,26 @@ impl SocialsDb {
             Ok(c) => c,
             Err(_) => return Err(DbError::connection_error())
         };
+        debug!("Connected to db instance on: {} to {}", &connection_string, db_name);
         let db_client = SocialsDb {
             db_name,
             client
         };
-      return Ok(db_client)
+        return Ok(db_client)
+    }
+
+    pub async fn new_instance () -> Result<SocialsDb, DbError> {
+        return SocialsDb::make_instance(
+            "mongo_main_connection",
+            "socials_main_db"
+        ).await
+    }
+
+    pub async fn new_test_instance () -> Result<SocialsDb, DbError> {
+        return SocialsDb::make_instance(
+            "mongo_test_connection",
+            "socials_test_db"
+        ).await
     }
 
     pub async fn find<T, Q>(query: &Q, collection: &Collection<T>) -> Result<DbFindResult<T>, DbError>
