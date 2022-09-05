@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, env};
 
 use log::{info, debug};
 
@@ -9,13 +9,33 @@ pub async fn test_browser_processes ()  {
     env_logger::init();
     info!("Run test browser processes");
     // test_zombie().await;
-    test_driver_init_close().await;
+    test_driver_max_spawn_sys_env();
+    test_driver_max_spawn();
+    // test_driver_init_close().await;
 }
+
+pub fn test_driver_max_spawn () {
+    env::remove_var("webdriver_max_spawn");
+    let max_def = BrowserCore::get_max_watch_spawn();
+    assert_eq!(max_def, 4);
+    env::set_var("webdriver_max_spawn", "2");
+    let max_set = BrowserCore::get_max_watch_spawn();
+    assert_eq!(max_set, 2);
+    env::remove_var("webdriver_max_spawn")
+}
+
+// comment further
+pub fn test_driver_max_spawn_sys_env () {
+    let max_set = BrowserCore::get_max_watch_spawn();
+    debug!("Sys webdriver max spawn: {}", max_set);
+    assert_eq!(max_set, 1);
+}
+
 
 pub async fn test_driver_init_close () {
     let core = BrowserCore::init().await;
     debug!("Driver initialized. Sleep for 5 secs");
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    tokio::time::sleep(Duration::from_secs(3)).await;
     core.close().await;
     debug!("Driver closed");
 }

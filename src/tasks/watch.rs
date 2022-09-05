@@ -3,6 +3,8 @@ use std::time::{SystemTime, Duration};
 use log::info;
 use serde::{Serialize, Deserialize};
 
+use crate::browser_core::BrowserCore;
+
 use super::{TaskAction, BotTask, TaskTarget};
 
 // use super::{TaskAction, BotTask};
@@ -103,7 +105,8 @@ impl TaskAction for WatchAction {
     }
     fn calc_need_do_now(&self, task: &BotTask) -> u64 {
         info!("Invoke `calc_need_do_now` {}: {:#?}", task.title, self.data);
-        let max = self.settings.max_watch_spawn;
+        // let max = self.settings.max_watch_spawn;
+        let max = BrowserCore::get_max_watch_spawn();
         let action_process_time: u64 = self.data.watch_seconds;
         let now = SystemTime::now();
         let created = task.date_created;

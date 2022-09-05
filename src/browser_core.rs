@@ -1,4 +1,4 @@
-use std::{net::{TcpListener, TcpStream, SocketAddr}, time::{Duration, SystemTime}};
+use std::{net::{TcpListener, TcpStream, SocketAddr}, time::{Duration, SystemTime}, env};
 
 use log::debug;
 use fantoccini::ClientBuilder;
@@ -15,6 +15,16 @@ pub struct BrowserCore {
 
 impl BrowserCore {
     pub async fn new () -> Self { Self::init().await }
+
+    fn default_max_watch_spawn () -> u64 { 4 }
+
+    pub fn get_max_watch_spawn () -> u64 {
+        let d = BrowserCore::default_max_watch_spawn();
+        match env::var("webdriver_max_spawn") {
+            Ok(v) => v.parse::<u64>().unwrap_or(d),
+            _ => d
+        }
+    }
 
     fn get_free_socket () -> Option<SocketAddr> {
         let listener = TcpListener::bind(("127.0.0.1", 0));
@@ -42,37 +52,32 @@ impl BrowserCore {
     }
 
     fn init_driver (socket: &SocketAddr) -> process::Child {
-        // run webdriver instance on auto-port
         let res = process::Command::new("geckodriver")
             .arg("--log")
-            .arg("error")
+            .arg("fatal")
             .arg("-p")
             .arg(socket.port().to_string())
             .spawn().expect("Failed to spawn geckodriver");
         res
-        /*
-        let addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(127,0,0,1)),
-            4444
-        );
-        */
     }
 
     async fn init_client (socket: &SocketAddr) -> fantoccini::Client {
         let mut client = ClientBuilder::native();
         // "args": ["-headless"],
         let capabilities = r#"{
-                "moz:firefoxOptions": {
-                "args": ["-headless"],
+            "moz:firefoxOptions": {
+                "args": ["-headless", "-private"],
                 "prefs": {
                     "media.volume_scale": "0.0"
                 },
-                "log": {"level": "fatal"}
+                "log": {"level": "error"},
+                "env": {
+                    "RUST_LOG": "error"
+                }
             }
         }"#;
         let cap = serde_json::from_str(capabilities).unwrap();
         client.capabilities(cap);
-
         // let mut url: String = "http://127.0.0.1:".to_string();
         // url.push_str(port);
         debug!("Client try to connect with socket {}", socket.to_string());
