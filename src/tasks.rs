@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use bson::{Document, Uuid};
 use log::info;
-use mongodb::options::FindOptions;
+use mongodb::options::{FindOptions, FindOneOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
@@ -56,6 +56,7 @@ pub struct BotTaskQuery {
     pub platform: Option<SocialPlatform>,
     pub status: Option<BotTaskStatus>,
     pub is_active: Option<u8>,
+    pub is_locked: Option<bool>,
     pub include_hidden: Option<u8>,
     pub is_browser: Option<u8>,
     pub include_browser_tasks: Option<u8>,
@@ -71,6 +72,10 @@ impl BotTaskQuery {
     }
     pub fn is_active(&mut self) -> &mut Self {
         self.status = Some(BotTaskStatus::Active);
+        self
+    }
+    pub fn not_action_locked(&mut self) -> &mut Self {
+        self.is_locked = Some(false);
         self
     }
     pub fn is_finished(&mut self) -> &mut Self {
@@ -127,10 +132,10 @@ impl DbQuery for BotTaskQuery {
     fn collect_sorting(&self) -> Document {
         let mut s = Document::new();
         if let Some(i) = &self.sort_by_created_date {
-            s.insert("created_date", i);
+            s.insert("date_created", i);
         }
         if let Some(i) = &self.sort_by_updated_date {
-            s.insert("updated_date", i);
+            s.insert("date_updated", i);
         }
         s
     }
@@ -142,9 +147,15 @@ impl DbQuery for BotTaskQuery {
         f.sort = Some(self.collect_sorting());
         f
     }
+
+    fn collect_one_options(&self) -> FindOneOptions {
+        let mut f = FindOneOptions::default();
+        f.sort = Some(self.collect_sorting());
+        f
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BotTaskCreate {
     pub is_active: bool,
     pub title: String,
@@ -232,6 +243,7 @@ impl TaskActionEnum {
 pub struct BotTask {
     pub id: bson::Uuid,
     is_active: bool,
+    is_locked: bool,
     status: BotTaskStatus,
     pub date_created: SystemTime,
     pub date_updated: SystemTime,
@@ -276,14 +288,50 @@ impl BotTask {
         self.error = None
     }
 
+    pub async fn lock_db(
+        &mut self,
+        db: &SocialsDb
+    ) -> Result<mongodb::results::UpdateResult, DbError> {
+        self.is_locked = true;
+        self.update_db(db).await
+    }
+
+    pub async fn unlock_db(
+        &mut self,
+        db: &SocialsDb
+    ) -> Result<mongodb::results::UpdateResult, DbError> {
+        self.is_locked = false;
+        self.update_db(db).await
+    }
+
+    pub async fn get_fresh(
+        &mut self,
+        db: &SocialsDb
+    ) -> Option<bool> {
+        let q = BotTaskQuery {
+            id: Some(self.id),
+            ..Default::default()
+        };
+        match SocialsDb::find_one(&q, &db.bots_tasks())
+            .await.expect("Error while finding in db") {
+            Some(t) => {
+                *self = t;
+                Some(true)
+            }
+            _ => None
+        }
+    }
+
     pub async fn update_db(
         &mut self,
         db: &SocialsDb,
     ) -> Result<mongodb::results::UpdateResult, DbError> {
+        // update task date_updated
+        self.date_updated = SystemTime::now();
         SocialsDb::update_by_id(self.id, self, &db.bots_tasks()).await
     }
 
-    async fn make_v2(&mut self) {
+    async fn make_v2(&mut self, db: &SocialsDb) {
         self.check_calc_next_time_run();
         let need_run = self.need_run();
         info!("Need run task: {}", need_run);
@@ -298,16 +346,16 @@ impl BotTask {
         let dzen_core = DzenCore::new();
 
         match self.platform {
-            SocialPlatform::Vk => vk_core.make_action(self).await,
-            SocialPlatform::Ok => ok_core.make_action(self).await,
-            SocialPlatform::Youtube => yt_core.make_action(self).await,
-            SocialPlatform::Dzen => dzen_core.make_action(self).await,
+            SocialPlatform::Vk => vk_core.make_action(self, db).await,
+            SocialPlatform::Ok => ok_core.make_action(self, db).await,
+            SocialPlatform::Youtube => yt_core.make_action(self, db).await,
+            SocialPlatform::Dzen => dzen_core.make_action(self, db).await,
             _ => info!("{:#?} not implemented yet", self.platform),
         }
     }
 
-    pub async fn make(&mut self) {
-        self.make_v2().await;
+    pub async fn make(&mut self, db: &SocialsDb) {
+        self.make_v2(db).await;
     }
 
     pub fn check_done(&mut self) -> bool {
@@ -353,6 +401,7 @@ impl BotTask {
         BotTask {
             id: Uuid::new(),
             is_active: t.is_active,
+            is_locked: false,
             status: BotTaskStatus::default(),
             date_created: SystemTime::now(),
             date_updated: SystemTime::now(),

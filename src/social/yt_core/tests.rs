@@ -26,5 +26,5 @@ pub async fn test_watch_video () {
         ..Default::default()
     };
     let mut task = BotTask::create_from(&db, new_task).await;
-    task.make().await;
+    task.make(&db).await;
 }

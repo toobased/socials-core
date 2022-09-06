@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::tasks::{like::LikeAction, BotTask};
+use crate::{tasks::{like::LikeAction, BotTask}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
 
@@ -44,7 +44,7 @@ impl SocialCore for DzenCore {
     fn info(&self) -> String {
         "DzenCore".to_string()
     }
-    fn like(&self, _action: LikeAction, _task: &mut BotTask) {
+    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
         println!("run for dzen platform")
     }
 

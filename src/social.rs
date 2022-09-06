@@ -4,7 +4,7 @@ use fantoccini::Locator;
 use log::info;
 use serde::{Serialize, Deserialize};
 
-use crate::{tasks::{BotTask, like::LikeAction, watch::WatchAction, TaskActionEnum, TaskAction, errors::TaskError}, browser_core::BrowserCore};
+use crate::{tasks::{BotTask, like::LikeAction, watch::WatchAction, TaskActionEnum, TaskAction, errors::TaskError}, browser_core::BrowserCore, db::SocialsDb};
 
 
 use async_trait::async_trait;
@@ -28,16 +28,16 @@ pub trait SocialCore {
     fn info(&self) -> String;
     fn config(&self) -> &Self::CoreConfig;
 
-    async fn make_action(&self, task: &mut BotTask) {
+    async fn make_action(&self, task: &mut BotTask, db: &SocialsDb) {
         let action = task.action.clone();
         match action {
-            TaskActionEnum::LikeAction(a) => self.like(a, task),
-            TaskActionEnum::WatchAction(a) => self.watch(a, task).await,
+            TaskActionEnum::LikeAction(a) => self.like(a, task, db),
+            TaskActionEnum::WatchAction(a) => self.watch(a, task, db).await,
             _ => (),
         };
     }
 
-    fn like(&self, _action: LikeAction, _task: &mut BotTask) {}
+    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {}
 
     async fn watch_task(&self, action: &WatchAction) -> Result<(), TaskError> {
         info!("Run watch_task from trait!");
@@ -89,7 +89,7 @@ pub trait SocialCore {
         Ok(())
     }
 
-    async fn watch(&self, action: WatchAction, task: &mut BotTask) {
+    async fn watch(&self, action: WatchAction, task: &mut BotTask, db: &SocialsDb) {
         // info!("Run watch action from trait. Not implemented yet. Core: {}", self.info())
         info!("Run watch action from trait");
         let need_do = action.calc_need_do_now(task);
@@ -104,12 +104,26 @@ pub trait SocialCore {
             }
         }
 
+        match task.get_fresh(db).await {
+            Some(_) => {},
+            None => return
+        };
+
+        // TODO fix cloning
+        let fresh_action = task.action.clone();
+
         if !task.has_error() {
-            let mut a = action.clone();
-            a.stats.watched_count += need_do;
-            a.calc_next_time_run(task);
-            task.action = TaskActionEnum::WatchAction(a);
+            match fresh_action {
+                TaskActionEnum::WatchAction(mut action) => {
+                    action.stats.watched_count += need_do;
+                    action.calc_next_time_run(task);
+                    task.action = TaskActionEnum::WatchAction(action);
+                },
+                _ => {}
+            }
         }
+        task.update_db(db).await
+            .expect("Cant update task in db");
     }
 }
 

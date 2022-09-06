@@ -2,11 +2,11 @@ use crate::{db::SocialsDb, tasks::{TaskActionEnum, watch::{WatchAction, WatchTar
 
 #[tokio::test]
 async fn test_task_actions () {
+    env_logger::init();
     test_watch_video().await;
 }
 
 pub async fn test_watch_video () {
-    env_logger::init();
     let db = SocialsDb::new_test_instance().await.unwrap();
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
@@ -25,5 +25,5 @@ pub async fn test_watch_video () {
         ..Default::default()
     };
     let mut task = BotTask::create_from(&db, new_task).await;
-    task.make().await;
+    task.make(&db).await;
 }

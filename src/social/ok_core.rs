@@ -1,4 +1,4 @@
-use crate::tasks::{like::LikeAction, BotTask};
+use crate::{tasks::{like::LikeAction, BotTask}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
 
@@ -34,7 +34,7 @@ impl SocialCore for OkCore {
     fn info(&self) -> String {
         "OkCore".to_string()
     }
-    fn like(&self, _action: LikeAction, _task: &mut BotTask) {
+    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
           println!("run for ok platform")
     }
 }

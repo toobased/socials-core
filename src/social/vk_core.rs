@@ -1,4 +1,4 @@
-use crate::tasks::{like::LikeAction, BotTask};
+use crate::{tasks::{like::LikeAction, BotTask}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
 
@@ -37,7 +37,7 @@ impl SocialCore for VkCore {
     fn info(&self) -> String {
         "VkCore".to_string()
     }
-    fn like(&self, _action: LikeAction, _task: &mut BotTask) {
+    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
         println!("run for vk platform")
     }
 }
