@@ -243,7 +243,7 @@ impl TaskActionEnum {
 pub struct BotTask {
     pub id: bson::Uuid,
     is_active: bool,
-    is_locked: bool,
+    // is_locked: bool,
     status: BotTaskStatus,
     pub date_created: SystemTime,
     pub date_updated: SystemTime,
@@ -288,6 +288,7 @@ impl BotTask {
         self.error = None
     }
 
+    /*
     pub async fn lock_db(
         &mut self,
         db: &SocialsDb
@@ -303,6 +304,7 @@ impl BotTask {
         self.is_locked = false;
         self.update_db(db).await
     }
+    */
 
     pub async fn get_fresh(
         &mut self,
@@ -401,7 +403,7 @@ impl BotTask {
         BotTask {
             id: Uuid::new(),
             is_active: t.is_active,
-            is_locked: false,
+            // is_locked: false,
             status: BotTaskStatus::default(),
             date_created: SystemTime::now(),
             date_updated: SystemTime::now(),

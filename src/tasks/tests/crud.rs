@@ -17,6 +17,8 @@ pub async fn test_tasks_crud() {
     db_update_by_id_task().await;
     // test find one
     db_find_one_task().await;
+    db_find_one_regular().await;
+    db_find_one_browser().await;
 }
 
 #[tokio::test]
@@ -132,4 +134,36 @@ pub async fn db_find_one_task() {
         .await.unwrap().unwrap();
     info!("item is {} {}", item.id, item.title);
     assert_eq!("testing_stuff_new".to_string(), item.title)
+}
+
+pub async fn db_find_one_regular() {
+    let db = SocialsDb::new_test_instance().await.unwrap();
+    let item = SocialsDb::find_one(&regular_task_query(), &db.bots_tasks())
+        .await.unwrap();
+    info!("Found regular {:#?}", item);
+}
+
+pub async fn db_find_one_browser() {
+    let db = SocialsDb::new_test_instance().await.unwrap();
+    let item = SocialsDb::find_one(&browser_task_query(), &db.bots_tasks())
+        .await.unwrap();
+    info!("Found browser {:#?}", item);
+}
+
+pub fn regular_task_query() -> BotTaskQuery {
+    let mut query = BotTaskQuery::default();
+    query
+        .is_active()
+        .not_browser()
+        .top_old_updated();
+    query
+}
+
+pub fn browser_task_query() -> BotTaskQuery {
+    let mut query = BotTaskQuery::default();
+    query
+        .is_active()
+        .is_browser()
+        .top_old_updated();
+    query
 }
