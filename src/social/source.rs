@@ -13,16 +13,16 @@ pub mod tests;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct SourcePlatformInfo {
-    platform: SocialPlatform,
-    source_link: String
+    pub platform: SocialPlatform,
+    pub source_link: String
     // TODO
 }
 
 // TODO
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct SocialSourceQuery {
-    id: Option<bson::Uuid>,
-    title: Option<String>
+    pub id: Option<bson::Uuid>,
+    pub title: Option<String>
 }
 
 // TODO
