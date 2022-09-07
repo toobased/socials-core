@@ -39,10 +39,19 @@ impl DbQuery for SocialSourceQuery {
     }
 }
 
-// impl FindById for SocialSource {}
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct SocialSourceCreate {
+    #[serde(default)]
+    pub avatar: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub platforms: Vec<SourcePlatformInfo>
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct SocialSource {
-    #[serde(default)]
     id: bson::Uuid,
     #[serde(default)]
     pub avatar: String,
@@ -51,7 +60,6 @@ pub struct SocialSource {
     pub description: String,
     #[serde(default)]
     pub platforms: Vec<SourcePlatformInfo>
-    // Vec<SourcePlatform>
 }
 
 impl SocialSource {
@@ -60,5 +68,17 @@ impl SocialSource {
         println!("query is {:#?}", query.collect_filters());
         let result = SocialsDb::find_one(&query, &collection).await;
         result
+    }
+}
+
+impl From<SocialSourceCreate> for SocialSource {
+    fn from(s: SocialSourceCreate) -> Self {
+        Self {
+            id: bson::Uuid::new(),
+            avatar: s.avatar,
+            name: s.name,
+            description: s.description,
+            platforms: s.platforms
+        }
     }
 }

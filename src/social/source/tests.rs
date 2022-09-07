@@ -2,6 +2,8 @@ use crate::db::SocialsDb;
 
 use crate::social::source::{SocialSourceQuery, SocialSource};
 
+use super::SocialSourceCreate;
+
 
 #[tokio::test]
 pub async fn test_crud () {
@@ -21,10 +23,11 @@ pub async fn remove_social_sources() {
 
 pub async fn create_social_source () {
     let db = SocialsDb::new_test_instance().await.unwrap();
-    let source = SocialSource { 
+    let new_source = SocialSourceCreate { 
         name: "random_name".to_string(),
         ..Default::default()
     };
+    let source = SocialSource::from(new_source);
     SocialsDb::insert_one(source, db.social_sources())
         .await.unwrap();
 }
@@ -38,7 +41,8 @@ pub async fn create_social_source_json () {
             {"platform": "Ok", "source_link": "another_link_is_here"}
         ]
     }"#;
-    let source = serde_json::from_str::<SocialSource>(source_raw).expect("Cant parse social source from raw json");
+    let new_source = serde_json::from_str::<SocialSourceCreate>(source_raw).expect("Cant parse social source from raw json");
+    let source = SocialSource::from(new_source);
     SocialsDb::insert_one(source, db.social_sources())
         .await.unwrap();
 }
