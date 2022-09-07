@@ -52,6 +52,7 @@ impl Default for BotTaskStatus {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct BotTaskQuery {
     pub id: Option<bson::Uuid>,
+    pub source_id: Option<bson::Uuid>,
     pub title: Option<String>,
     pub platform: Option<SocialPlatform>,
     pub status: Option<BotTaskStatus>,
@@ -105,6 +106,9 @@ impl DbQuery for BotTaskQuery {
         let mut f = Document::new();
         if let Some(i) = &self.id {
             f.insert("id", i);
+        }
+        if let Some(i) = &self.source_id {
+            f.insert("social_source.id", i);
         }
         if let Some(i) = &self.title {
             f.insert("title", i.as_str());
