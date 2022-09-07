@@ -334,7 +334,7 @@ impl BotTask {
     ) -> Result<mongodb::results::UpdateResult, DbError> {
         // update task date_updated
         self.date_updated = SystemTime::now();
-        SocialsDb::update_by_id(self.id, self, &db.bots_tasks()).await
+        SocialsDb::update_by_id(self.id, self.clone(), &db.bots_tasks()).await
     }
 
     async fn make_v2(&mut self, db: &SocialsDb) {

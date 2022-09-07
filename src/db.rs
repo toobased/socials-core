@@ -149,7 +149,19 @@ impl SocialsDb {
         }
     }
 
-    pub async fn update_by_id<T>(id: bson::Uuid, item: &mut T, collection: &Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
+    pub async fn find_by_id<T>(id: bson::Uuid, collection: &Collection<T>) -> Result<Option<T>, DbError>
+    where
+        T: DeserializeOwned + Unpin + Send + Sync
+    {
+        let mut f = Document::new();
+        f.insert("id", id);
+        match collection.find_one(f, None).await {
+            Ok(item) => Ok(item),
+            Err(_e) => Err(DbError::error_while_find())
+        }
+    }
+
+    pub async fn update_by_id<T>(id: bson::Uuid, item: T, collection: &Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
     where
         T: Serialize,
     {

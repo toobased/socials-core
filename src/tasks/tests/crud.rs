@@ -117,7 +117,7 @@ pub async fn db_update_by_id_task() {
     let mut find_result = db_get_bots_tasks().await;
     let task = find_result.items.get_mut(0).unwrap();
     task.title = "testing_stuff_new".to_string();
-    let _item = SocialsDb::update_by_id(task.id, task, &db.bots_tasks())
+    let _item = SocialsDb::update_by_id(task.id, task.clone(), &db.bots_tasks())
         .await.unwrap();
 }
 
