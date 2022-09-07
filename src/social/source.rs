@@ -69,6 +69,12 @@ impl SocialSource {
         let result = SocialsDb::find_one(&query, &collection).await;
         result
     }
+    pub fn update_with(&mut self, s: SocialSourceCreate) {
+        self.avatar = s.avatar;
+        self.name = s.name;
+        self.description = s.description;
+        self.platforms = s.platforms;
+    }
 }
 
 impl From<SocialSourceCreate> for SocialSource {
