@@ -1,7 +1,8 @@
-use std::{net::{TcpListener, TcpStream, SocketAddr}, time::{Duration, SystemTime}, env};
+use std::{net::{TcpListener, TcpStream, SocketAddr}, time::{Duration, SystemTime}, env };
 
 use log::debug;
 use fantoccini::ClientBuilder;
+use serde_json::json;
 use tokio::process;
 
 #[cfg(test)]
@@ -22,6 +23,17 @@ impl BrowserCore {
         let d = BrowserCore::default_max_watch_spawn();
         match env::var("webdriver_max_spawn") {
             Ok(v) => v.parse::<u64>().unwrap_or(d),
+            _ => d
+        }
+    }
+
+    pub fn is_headless () -> bool {
+        let d = true;
+        match env::var("socials_headless") {
+            Ok(v) => match v.parse::<u64>().unwrap_or(1) {
+                0 => false,
+                _ => d
+            },
             _ => d
         }
     }
@@ -63,10 +75,13 @@ impl BrowserCore {
 
     async fn init_client (socket: &SocketAddr) -> fantoccini::Client {
         let mut client = ClientBuilder::native();
-        // "args": ["-headless"],
-        let capabilities = r#"{
+        let mut args: Vec<&str> = Vec::new();
+        args.push("-private");
+        if BrowserCore::is_headless() { args.push("-headless") }
+
+        let capabilities = json!({
             "moz:firefoxOptions": {
-                "args": ["-headless", "-private"],
+                "args": args,
                 "prefs": {
                     "media.volume_scale": "0.0"
                 },
@@ -75,11 +90,10 @@ impl BrowserCore {
                     "RUST_LOG": "error"
                 }
             }
-        }"#;
-        let cap = serde_json::from_str(capabilities).unwrap();
+        });
+        let cap = serde_json::from_value(capabilities).unwrap();
+        debug!("Capabilities are {:#?}", cap);
         client.capabilities(cap);
-        // let mut url: String = "http://127.0.0.1:".to_string();
-        // url.push_str(port);
         debug!("Client try to connect with socket {}", socket.to_string());
         let mut url = String::from("http://");
         url.push_str(&socket.to_string());
