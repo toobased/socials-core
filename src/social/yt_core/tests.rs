@@ -11,7 +11,7 @@ pub async fn test_watch_video () {
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
             watch_count: 2,
-            watch_seconds: 5,
+            watch_seconds: 10,
             time_spread: 0, // 3600 - 60 minutes for task
             resource_link: "https://www.youtube.com/watch?v=zuL55W3Ivtk&t=3s".to_string(),
 // https://zen.yandex.ru/video/watch/6308b747f90f894d66453ba7
