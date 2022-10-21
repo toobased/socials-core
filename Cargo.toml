@@ -21,7 +21,7 @@ webdriver = "0.46.0"
 # custom dependencies
 [dependencies.vk_client]
 git = "https://github.com/toobased/vk-client"
-rev="3d77445"
+rev="1f6edf9"
 
 
 [dependencies.uuid]

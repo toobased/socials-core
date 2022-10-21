@@ -137,8 +137,17 @@ impl SocialCore for VkCore {
                     match result {
                         Err(vk_err) => {
                             match VkCore::parse_error(&vk_err) {
-                                VkCoreParsedError::Task(_e) => { },
-                                VkCoreParsedError::Bot(_e) => { }
+                                VkCoreParsedError::Task(e) => {
+                                    task
+                                        .get_fresh(&db).await.unwrap() // TODO
+                                        .process_error(e)
+                                        .update_db(&db).await.unwrap(); // TODO
+                                },
+                                VkCoreParsedError::Bot(e) => {
+                                    bot.get_fresh(&db).await.unwrap() // TODO
+                                        .process_error(e)
+                                        .update_db(&db).await.unwrap(); // TODO
+                                }
                             }
                         },
                         Ok(_r) => {

@@ -89,10 +89,7 @@ impl TaskAction for LikeAction {
     fn check_done(&self, task: &mut BotTask) -> bool {
         let done = self.stats.like_count >= self.data.like_count;
         match done {
-            true => {
-                task.set_done();
-                done
-            },
+            true => { task.set_done(); done },
             false => false
         }
     }
