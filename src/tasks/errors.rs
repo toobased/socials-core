@@ -8,7 +8,8 @@ pub enum TaskErrorKind {
     IncorrectData,
     ActionError,
     Dummy,
-    NotImplemented
+    NotImplemented,
+    Unknown
 }
 
 impl Default for TaskErrorKind {
@@ -48,6 +49,10 @@ impl TaskError {
     pub fn dummy () -> Self {
         let msg = "Just dummy error here".to_string();
         Self::action_error(Some(msg), None)
+    }
+
+    pub fn unknown (msg: Option<String>, detailed: Option<String>) -> Self {
+        Self::new(TaskErrorKind::Unknown, msg, detailed)
     }
 }
 

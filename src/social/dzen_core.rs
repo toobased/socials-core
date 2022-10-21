@@ -44,7 +44,7 @@ impl SocialCore for DzenCore {
     fn info(&self) -> String {
         "DzenCore".to_string()
     }
-    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
+    async fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
         println!("run for dzen platform")
     }
 

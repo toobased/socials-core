@@ -31,13 +31,15 @@ pub trait SocialCore {
     async fn make_action(&self, task: &mut BotTask, db: &SocialsDb) {
         let action = task.action.clone();
         match action {
-            TaskActionEnum::LikeAction(a) => self.like(a, task, db),
+            TaskActionEnum::LikeAction(a) => self.like(a, task, db).await,
             TaskActionEnum::WatchAction(a) => self.watch(a, task, db).await,
-            _ => (),
+            _ => info!("{:#?} dont match any action variants. Shouldnt happen.", action),
         };
     }
 
-    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {}
+    async fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
+        info!("not implemented yet?");
+    }
 
     async fn watch_task(&self, action: &WatchAction) -> Result<(), TaskError> {
         info!("Run watch_task from trait!");
@@ -100,19 +102,14 @@ pub trait SocialCore {
             let r = result.clone();
             match r {
                 Ok(_) => {},
-                Err(e) => { task.set_error(e) }
+                Err(e) => { task.set_error(e); }
             }
         }
 
-        match task.get_fresh(db).await {
-            Some(_) => {},
-            None => return
-        };
-
-        // TODO fix cloning
-        let fresh_action = task.action.clone();
-
         if !task.has_error() {
+            task.get_fresh(&db).await.unwrap();
+            // TODO fix cloning
+            let fresh_action = task.action.clone();
             match fresh_action {
                 TaskActionEnum::WatchAction(mut action) => {
                     action.stats.watched_count += need_do;

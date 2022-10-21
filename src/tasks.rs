@@ -202,6 +202,7 @@ pub enum TaskActionEnum {
     WatchAction(WatchAction),
     Test,
 }
+
 impl Default for TaskActionEnum {
     fn default() -> Self {
         Self::Test
@@ -262,13 +263,8 @@ pub struct BotTask {
 }
 
 impl BotTask {
-    pub fn print_info(&self) {
-        println!("{} {:#?}", self.title, self.platform)
-    }
-
-    pub fn deactivate(&mut self) {
-        self.is_active = false
-    }
+    pub fn print_info(&self) { println!("{} {:#?}", self.title, self.platform) }
+    pub fn deactivate(&mut self) -> &mut Self { self.is_active = false; self }
 
     pub fn is_done(&self) -> bool {
         match self.status {
@@ -277,20 +273,21 @@ impl BotTask {
         }
     }
 
-    pub fn set_done(&mut self) {
+    pub fn set_done(&mut self) -> &mut Self {
         info!("Task is done!");
         self.status = BotTaskStatus::Finished;
         self.is_active = false;
+        self
     }
 
-    pub fn set_error(&mut self, e: TaskError) {
-        self.error = Some(e);
-        self.is_active = false;
+    pub fn process_error(&mut self, e: TaskError) -> &mut Self {
+        // TODO special cases? 🤔
+        self.set_error(e)
     }
-
-    pub fn clear_error(&mut self) {
-        self.error = None
+    pub fn set_error(&mut self, e: TaskError) -> &mut Self {
+        self.error = Some(e); self.is_active = false; self
     }
+    pub fn clear_error(&mut self) -> &mut Self { self.error = None; self }
 
     /*
     pub async fn lock_db(
@@ -313,19 +310,19 @@ impl BotTask {
     pub async fn get_fresh(
         &mut self,
         db: &SocialsDb
-    ) -> Option<bool> {
+    ) -> Result<&mut Self, DbError> {
         let q = BotTaskQuery {
             id: Some(self.id),
             ..Default::default()
         };
         match SocialsDb::find_one(&q, &db.bots_tasks())
-            .await.expect("Error while finding in db") {
-            Some(t) => {
-                *self = t;
-                Some(true)
+            .await {
+                Ok(r) => match r {
+                    Some(t) => { *self = t; Ok(self) }
+                    _ => Ok(self)
+                },
+                Err(e) => Err(e)
             }
-            _ => None
-        }
     }
 
     pub async fn update_db(
@@ -360,17 +357,9 @@ impl BotTask {
         }
     }
 
-    pub async fn make(&mut self, db: &SocialsDb) {
-        self.make_v2(db).await;
-    }
-
-    pub fn check_done(&mut self) -> bool {
-        TaskActionEnum::check_done(self)
-    }
-
-    pub fn need_run(&mut self) -> bool {
-        TaskActionEnum::need_run(self)
-    }
+    pub async fn make(&mut self, db: &SocialsDb) { self.make_v2(db).await; }
+    pub fn check_done(&mut self) -> bool { TaskActionEnum::check_done(self) }
+    pub fn need_run(&mut self) -> bool { TaskActionEnum::need_run(self) }
 
     pub fn check_calc_next_time_run(&mut self) {
         match self.next_run_time {
@@ -378,17 +367,8 @@ impl BotTask {
             None => self.calc_next_time_run(),
         }
     }
-
-    pub fn calc_next_time_run(&mut self) {
-        TaskActionEnum::calc_next_time_run(self)
-    }
-
-    pub fn has_error(&self) -> bool {
-        match self.error {
-            Some(_) => true,
-            None => false,
-        }
-    }
+    pub fn calc_next_time_run(&mut self) { TaskActionEnum::calc_next_time_run(self) }
+    pub fn has_error(&self) -> bool { match self.error { Some(_) => true, None => false, } }
 
     // TODO convert into result?
     pub async fn create_from(db: &SocialsDb, t: BotTaskCreate) -> BotTask {
@@ -424,13 +404,9 @@ impl BotTask {
 }
 
 pub trait TaskAction {
-    fn do_stuff(&self) {
-        println!("some stuff there")
-    }
+    fn do_stuff(&self) { println!("some stuff there") }
     fn need_run(&self, task: &mut BotTask) -> bool {
-        if task.has_error() {
-            return false;
-        }
+        if task.has_error() { return false; }
         let time_now = SystemTime::now();
         let next_run_time = task.next_run_time;
         match next_run_time {
@@ -441,9 +417,7 @@ pub trait TaskAction {
     fn check_done(&self, task: &mut BotTask) -> bool;
     fn calc_need_do_now(&self, task: &BotTask) -> u64;
     fn calc_next_time_run(&self, task: &mut BotTask);
-    fn use_browser(&self) -> bool {
-        false
-    }
+    fn use_browser(&self) -> bool { false }
 }
 
 

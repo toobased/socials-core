@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod tests;
 
+pub mod bots;
 pub mod tasks;
 pub mod social;
 pub mod db;

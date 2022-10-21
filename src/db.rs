@@ -10,7 +10,7 @@ use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
 
-use crate::{tasks::{BotTask, BotTaskType}, social::source::SocialSource};
+use crate::{tasks::{BotTask, BotTaskType}, social::source::SocialSource, bots::Bot};
 
 use self::errors::DbError;
 
@@ -42,21 +42,12 @@ pub struct SocialsDb {
 }
 
 impl SocialsDb {
-    pub fn get_db(&self) -> Database {
-        self.client.clone().database(&self.db_name)
-    }
-    pub fn collection<T>(&self, name: &str) -> Collection<T> {
-        self.get_db().collection(name)
-    }
-    pub fn bots_tasks(&self) -> Collection<BotTask> {
-        self.get_db().collection("bots_tasks")
-    }
-    pub fn social_sources(&self) -> Collection<SocialSource> {
-        self.get_db().collection("social_sources")
-    }
-    pub fn task_types(&self) -> Collection<BotTaskType> {
-        self.get_db().collection("task_types")
-    }
+    pub fn get_db(&self) -> Database { self.client.clone().database(&self.db_name) }
+    pub fn collection<T>(&self, name: &str) -> Collection<T> { self.get_db().collection(name) }
+    pub fn bots(&self) -> Collection<Bot> { self.get_db().collection("bots") }
+    pub fn bots_tasks(&self) -> Collection<BotTask> { self.get_db().collection("bots_tasks") }
+    pub fn social_sources(&self) -> Collection<SocialSource> { self.get_db().collection("social_sources") }
+    pub fn task_types(&self) -> Collection<BotTaskType> { self.get_db().collection("task_types") }
 
     async fn make_instance (
         connection_env_key: &str,

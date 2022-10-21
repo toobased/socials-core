@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use crate::{tasks::{like::LikeAction, BotTask}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
@@ -26,6 +28,7 @@ impl Default for OkCore {
     }
 }
 
+#[async_trait]
 impl SocialCore for OkCore {
     type CoreConfig = OkCoreConfig;
 
@@ -34,7 +37,7 @@ impl SocialCore for OkCore {
     fn info(&self) -> String {
         "OkCore".to_string()
     }
-    fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
+    async fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
           println!("run for ok platform")
     }
 }
