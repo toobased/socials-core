@@ -14,6 +14,9 @@ pub mod query;
 pub mod errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum Gender { Make, Female, Unknown }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BotStatus { Configure, Ready, Resting, InUse, Banned, ActionRequired, Error }
 impl Default for BotStatus { fn default() -> Self { Self::Configure } }
 
@@ -41,7 +44,8 @@ pub struct BotCreate {
     pub access_token: Option<String>,
     pub platform: SocialPlatform,
     pub created_source: Option<String>,
-    pub make_ready: bool
+    pub make_ready: bool,
+    pub gender: Option<Gender>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default )]
@@ -52,6 +56,7 @@ pub struct BotUpdate {
     pub access_token: Option<String>,
     pub platform: SocialPlatform,
     pub status: BotStatus,
+    pub gender: Option<Gender>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone )]
@@ -72,7 +77,8 @@ pub struct Bot {
     pub created_source: Option<String>,
     pub platform_data: BotPlatformData,
     pub extra: BotExtra,
-    pub error: Option<BotError>
+    pub error: Option<BotError>,
+    pub gender: Option<Gender>
 }
 
 impl Bot {
@@ -157,7 +163,8 @@ impl Bot {
             created_source: None,
             platform_data: BotPlatformData::init(),
             extra: BotExtra::init(),
-            error: None
+            error: None,
+            gender: v.gender
         };
         Ok(bot)
     }
