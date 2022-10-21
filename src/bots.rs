@@ -15,9 +15,10 @@ pub mod errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BotStatus { Configure, Ready, Resting, InUse, Banned, ActionRequired, Error }
+impl Default for BotStatus { fn default() -> Self { Self::Configure } }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-struct BotPlatformData {
+pub struct BotPlatformData {
     pub refresh_token: Option<String>,
     pub expires_in: Option<String>
 }
@@ -43,6 +44,16 @@ pub struct BotCreate {
     pub make_ready: bool
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default )]
+pub struct BotUpdate {
+    pub social_id: Option<String>,
+    pub username: String,
+    pub password: Option<String>,
+    pub access_token: Option<String>,
+    pub platform: SocialPlatform,
+    pub status: BotStatus,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone )]
 pub struct Bot {
     pub id: bson::Uuid,
@@ -58,8 +69,8 @@ pub struct Bot {
     // eof times
     pub platform: SocialPlatform,
     pub status: BotStatus,
-    created_source: Option<String>,
-    platform_data: BotPlatformData,
+    pub created_source: Option<String>,
+    pub platform_data: BotPlatformData,
     pub extra: BotExtra,
     pub error: Option<BotError>
 }
@@ -115,6 +126,16 @@ impl Bot {
         self.error = Some(e); self
     }
     pub fn clear_error(&mut self) -> &mut Self { self.error = None; self }
+
+    pub async fn update_with(&mut self, b: BotUpdate) -> &mut Self {
+        self.social_id = b.social_id;
+        self.username = b.username;
+        self.password = b.password;
+        self.access_token = b.access_token;
+        self.platform = b.platform;
+        self.status = b.status;
+        self
+    }
 
     pub async fn create_from(_db: &SocialsDb, v: BotCreate) -> Result<Bot, String> {
         let status = match v.make_ready {
