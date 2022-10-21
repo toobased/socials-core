@@ -127,7 +127,7 @@ impl Bot {
     }
     pub fn clear_error(&mut self) -> &mut Self { self.error = None; self }
 
-    pub async fn update_with(&mut self, b: BotUpdate) -> &mut Self {
+    pub fn update_with(&mut self, b: BotUpdate) -> &mut Self {
         self.social_id = b.social_id;
         self.username = b.username;
         self.password = b.password;
