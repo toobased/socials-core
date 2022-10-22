@@ -43,7 +43,9 @@ pub struct LikeAction {
     #[serde(default="TaskTarget::default")]
     pub target: TaskTarget,
     pub data: LikeTargetData,
+    #[serde(default="LikeStats::default")]
     pub stats: LikeStats,
+    #[serde(default="LikeSettings::default")]
     pub settings: LikeSettings
 }
 

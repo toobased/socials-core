@@ -37,7 +37,17 @@ pub async fn db_create_task_type() {
         ],
         "is_active": true
     }"#;
+    let lraw = r#"{
+        "action_type": "Like",
+        "name": "Like action",
+        "targets": [
+            {"target": "Post", "platforms": ["Vk"]}
+        ],
+        "is_active": true
+    }"#;
     let target = serde_json::from_str::<BotTaskType>(traw).unwrap();
+    SocialsDb::insert_one(target, db.task_types()).await.unwrap();
+    let target = serde_json::from_str::<BotTaskType>(lraw).unwrap();
     SocialsDb::insert_one(target, db.task_types()).await.unwrap();
 }
 
