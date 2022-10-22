@@ -14,7 +14,7 @@ pub mod query;
 pub mod errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum Gender { Make, Female, Unknown }
+pub enum Gender { Male, Female, Unknown }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BotStatus { Configure, Ready, Resting, InUse, Banned, ActionRequired, Error }
@@ -45,7 +45,8 @@ pub struct BotCreate {
     pub platform: SocialPlatform,
     pub created_source: Option<String>,
     pub make_ready: bool,
-    pub gender: Option<Gender>
+    pub gender: Option<Gender>,
+    pub rest_until: Option<SystemTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default )]
@@ -157,7 +158,7 @@ impl Bot {
             date_created: SystemTime::now(),
             date_updated: SystemTime::now(),
             last_used: None,
-            rest_until: None,
+            rest_until: v.rest_until,
             platform: v.platform,
             status,
             created_source: None,
