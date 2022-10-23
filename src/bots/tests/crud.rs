@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{db::{SocialsDb, DbQuery}, bots::{query::BotQuery, BotCreate, Bot}, social::SocialPlatform};
+use crate::{db::SocialsDb, bots::{query::BotQuery, BotCreate, Bot}, social::SocialPlatform};
 
 #[tokio::test]
 pub async fn test_tasks_crud() {

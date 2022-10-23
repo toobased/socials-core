@@ -39,6 +39,19 @@ impl Default for TaskActionType {
     }
 }
 
+impl TaskActionType {
+    fn is_default_browser(&self, p: &SocialPlatform) -> bool {
+        match self {
+            Self::Watch => true,
+            Self::Like => match p {
+                SocialPlatform::Vk => false,
+                _ => true
+            },
+            _ => false
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum BotTaskStatus { Active, Processing, Stopped, Error, Finished }
 
@@ -381,7 +394,7 @@ impl BotTask {
         // TODO!
         let options = BotTaskOptions {
             is_testing: true,
-            is_browser: true,
+            is_browser: t.action_type.is_default_browser(&t.platform),
             ..Default::default()
         };
         BotTask {
