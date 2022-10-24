@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{SystemTime, Duration};
 
 use bson::{Document, Uuid};
 use log::info;
@@ -279,6 +279,19 @@ impl BotTask {
     pub fn print_info(&self) { println!("{} {:#?}", self.title, self.platform) }
     pub fn deactivate(&mut self) -> &mut Self { self.is_active = false; self }
 
+    pub fn set_status_active(&mut self) -> &mut Self { self.status = BotTaskStatus::Active; self }
+    pub fn set_status_processing(&mut self) -> &mut Self { self.status = BotTaskStatus::Processing; self }
+    pub fn set_status_stopped(&mut self) -> &mut Self { self.status = BotTaskStatus::Stopped; self }
+    pub fn set_status_error(&mut self) -> &mut Self { self.status = BotTaskStatus::Error; self }
+    pub fn set_status_finished(&mut self) -> &mut Self { self.status = BotTaskStatus::Finished; self }
+
+    pub fn sleep_no_bots(&mut self, sleep: Option<Duration>) -> &mut Self {
+        let now = SystemTime::now();
+        let sleep = sleep.unwrap_or(Duration::from_secs(300));
+        let wait = now.checked_add(sleep).unwrap();
+        self.next_run_time = Some(wait); self
+    }
+
     pub fn is_done(&self) -> bool {
         match self.status {
             BotTaskStatus::Finished => true,
@@ -295,7 +308,8 @@ impl BotTask {
 
     pub fn process_error(&mut self, e: TaskError) -> &mut Self {
         // TODO special cases? 🤔
-        self.set_error(e)
+        info!("[BotTask] {} processing error {:#?}", self.id, e);
+        self.set_error(e).set_status_error()
     }
     pub fn set_error(&mut self, e: TaskError) -> &mut Self {
         self.error = Some(e); self.is_active = false; self

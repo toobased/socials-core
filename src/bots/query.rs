@@ -25,6 +25,8 @@ impl BotQuery {
     pub fn is_ready(&mut self) -> &mut Self { self.status = Some(BotStatus::Ready); self }
     pub fn with_platform(&mut self, p: SocialPlatform) -> &mut Self { self.platform = Some(p); self }
 
+    // TODO add not used by ids
+
     // time
     pub fn top_old_created(&mut self) -> &mut Self { self.sort_by_created_date = Some(1); self }
     pub fn top_old_updated(&mut self) -> &mut Self { self.sort_by_updated_date = Some(1); self }

@@ -1,5 +1,6 @@
 use std::time::SystemTime;
 
+use log::info;
 use serde::{Serialize, Deserialize};
 
 use crate::{social::SocialPlatform, db::{SocialsDb, errors::DbError}};
@@ -127,6 +128,7 @@ impl Bot {
     // error helpers
      pub fn process_error(&mut self, e: BotError) -> &mut Self {
         // TODO special cases? 🤔
+        info!("[Bot] {} processing error {:#?}", self.id, e);
         self.set_error(e).set_status_error()
     }
     pub fn set_error(&mut self, e: BotError) -> &mut Self {

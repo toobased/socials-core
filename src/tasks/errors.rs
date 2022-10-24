@@ -46,6 +46,7 @@ impl TaskError {
         let msg = "Task action not implemented yet".to_string();
         Self::action_error(Some(msg), None)
     }
+
     pub fn dummy () -> Self {
         let msg = "Just dummy error here".to_string();
         Self::action_error(Some(msg), None)
