@@ -21,6 +21,8 @@ pub mod errors;
 pub mod like;
 pub mod tests;
 pub mod watch;
+
+pub mod events;
 // eof local modules
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -289,6 +291,7 @@ impl BotTask {
         let now = SystemTime::now();
         let sleep = sleep.unwrap_or(Duration::from_secs(300));
         let wait = now.checked_add(sleep).unwrap();
+        info!("Task fall sleep for {} seconds", sleep.as_secs());
         self.next_run_time = Some(wait); self
     }
 
@@ -362,6 +365,7 @@ impl BotTask {
     }
 
     async fn make_v2(&mut self, db: &SocialsDb) {
+        info!("--- INVOKE MAKE TASK {} ---", self.id);
         self.check_calc_next_time_run();
         let need_run = self.need_run();
         info!("Need run task: {}", need_run);

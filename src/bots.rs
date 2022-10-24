@@ -38,6 +38,13 @@ impl BotPlatformData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default )]
+pub struct BotActionsRest {
+    like: Option<SystemTime>,
+    repost: Option<SystemTime>,
+    comment: Option<SystemTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default )]
 pub struct BotCreate {
     pub social_id: Option<String>,
     pub username: String,
@@ -73,6 +80,8 @@ pub struct Bot {
     pub date_updated: SystemTime,
     pub last_used: Option<SystemTime>,
     pub rest_until: Option<SystemTime>,
+    #[serde(default="BotActionsRest::default")]
+    pub actions_rest: BotActionsRest,
     // eof times
     pub platform: SocialPlatform,
     pub status: BotStatus,
@@ -161,6 +170,7 @@ impl Bot {
             date_updated: SystemTime::now(),
             last_used: None,
             rest_until: v.rest_until,
+            actions_rest: BotActionsRest::default(),
             platform: v.platform,
             status,
             created_source: None,

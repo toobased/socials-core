@@ -76,8 +76,8 @@ impl SocialCore for VkCore {
 
     async fn like(&self, action: LikeAction, task: &mut BotTask, db: &SocialsDb) {
         let need_do = action.calc_need_do_now(task);
-        let owner_id = action.data.owner_id.unwrap_or("".to_string());
-        let item_id = action.data.item_id.unwrap_or("".to_string());
+        let owner_id = action.data.owner_id.unwrap_or("".to_string()); // TODO
+        let item_id = action.data.item_id.unwrap_or("".to_string()); // TODO
 
         // getting bots for task
         let mut bots_query = BotQuery::new();
@@ -86,6 +86,7 @@ impl SocialCore for VkCore {
             .has_token()
             .top_old_used()
             .with_platform(SocialPlatform::Vk)
+            .exclude_ids(action.stats.bots_used)
             .limit(i64::try_from(need_do).unwrap());
         let mut bots = SocialsDb::find(&bots_query, &db.bots())
             .await.unwrap();
@@ -123,13 +124,18 @@ impl SocialCore for VkCore {
                                 .update_db(&db).await.unwrap(); // TODO
                         }
                     }
+                    break;
                 },
                 Ok(r) => {
                     if r.liked > 0 {
                         info!("task: {} is liked by bot: {}", task.id, bot.id);
-                        warn!("TODO feature: add bot to action used");
-                        // TODO add bot to action used
-                        return
+                        task.get_fresh(&db).await.unwrap();
+                        let mut action: LikeAction = task.action.clone()
+                            .try_into().ok().unwrap();
+                        action.add_used_bot(&bot.id);
+                        task.action = TaskActionEnum::LikeAction(action);
+                        task.update_db(&db).await.unwrap();
+                        continue
                     }
                     let query = likes::query::AddLikeQuery{
                         media_type: media::POST.to_string(),
@@ -154,15 +160,16 @@ impl SocialCore for VkCore {
                                         .update_db(&db).await.unwrap(); // TODO
                                 }
                             }
+                            break;
                         },
                         Ok(_r) => {
                             // TODO add event stats etc.
-                            // TODO update task action stats
                             info!("bot {} added like to {} task", bot.id, task.id);
                             task.get_fresh(db).await.unwrap(); // TODO
                             let mut action: LikeAction = task.action.clone()
                                 .try_into().ok().unwrap(); // TODO handle error
                             action.stats.like_count += 1;
+                            action.add_used_bot(&bot.id);
                             task.action = TaskActionEnum::LikeAction(action);
                             task.update_db(db).await.unwrap(); // TODO
                         }
@@ -170,7 +177,6 @@ impl SocialCore for VkCore {
 
                 }
             }
-            // info!("result is {:#?}", result);
         }
     }
 }

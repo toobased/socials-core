@@ -6,6 +6,7 @@ pub mod vk {
     // #[tokio::test]
     pub async fn like_add() {
         env_logger::try_init().ok();
+        log::set_max_level(log::LevelFilter::Info);
         let db = SocialsDb::new_test_instance().await.unwrap();
         let action = TaskActionEnum::LikeAction(LikeAction {
             target: TaskTarget::Post,
@@ -39,17 +40,22 @@ pub mod vk {
     #[tokio::test]
     pub async fn make_like_task() {
         env_logger::try_init().ok();
+        log::set_max_level(log::LevelFilter::Info);
         let db = SocialsDb::new_test_instance().await.unwrap();
         clean_tasks_db(&db).await;
         insert_like_task(&db).await;
-        let mut q = BotTaskQuery::new();
-        q
-            .not_browser()
-            .is_active()
-            .top_old_updated();
-        let mut task = SocialsDb::find_one(&q, &db.bots_tasks())
-            .await.unwrap().unwrap();
-        task.make(&db).await;
+
+        for _i in 0..2 {
+            let mut q = BotTaskQuery::new();
+            q
+                .not_browser()
+                .is_active()
+                .top_old_updated();
+            let mut task = SocialsDb::find_one(&q, &db.bots_tasks())
+                .await.unwrap().unwrap();
+            task.make(&db).await;
+        }
+
     }
 
     pub async fn insert_like_task(db: &SocialsDb) {

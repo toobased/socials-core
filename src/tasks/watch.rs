@@ -1,6 +1,6 @@
 use std::time::{SystemTime, Duration};
 
-use log::info;
+use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
 use crate::browser_core::BrowserCore;
@@ -73,7 +73,7 @@ impl TaskAction for WatchAction {
     }
 
     fn calc_next_time_run(&self, task: &mut super::BotTask) {
-        info!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);
+        debug!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);
         self.check_done(task);
         if task.is_done() {  return }
         let action_process_time: u64 = self.data.watch_seconds;
@@ -104,7 +104,7 @@ impl TaskAction for WatchAction {
             time_passed, time_spread, time_need, time_left, time_ratio, appender);
     }
     fn calc_need_do_now(&self, task: &BotTask) -> u64 {
-        info!("Invoke `calc_need_do_now` {}: {:#?}", task.title, self.data);
+        debug!("Invoke `calc_need_do_now` {}: {:#?}", task.title, self.data);
         // let max = self.settings.max_watch_spawn;
         let max = BrowserCore::get_max_watch_spawn();
         let action_process_time: u64 = self.data.watch_seconds;

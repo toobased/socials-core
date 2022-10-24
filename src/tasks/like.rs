@@ -1,6 +1,6 @@
 use std::time::{SystemTime, Duration};
 
-use log::info;
+use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
 use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum};
@@ -31,7 +31,8 @@ impl LikeTargetData {
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LikeStats {
     pub like_count: i32,
-    pub processed_posts_ids: Vec<String>
+    pub processed_posts_ids: Vec<String>,
+    pub bots_used: Vec<bson::Uuid>
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LikeSettings {
@@ -59,10 +60,17 @@ impl TryFrom<TaskActionEnum> for LikeAction {
     }
 }
 
+impl LikeAction {
+    pub fn add_used_bot(&mut self, bot_id: &bson::Uuid) -> &mut Self {
+        debug!("add {} to used", bot_id);
+        self.stats.bots_used.push(bot_id.clone()); self
+    }
+}
+
 impl TaskAction for LikeAction {
 
     fn calc_next_time_run(&self, task: &mut BotTask) {
-        info!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);
+        debug!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);
         self.check_done(task);
         if task.is_done() { return };
         let now = SystemTime::now();

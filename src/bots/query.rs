@@ -1,6 +1,7 @@
 use bson::{Document, doc};
 use mongodb::options::{FindOptions, FindOneOptions};
 use serde::{Serialize, Deserialize};
+
 use serde_json::to_value;
 
 use crate::{social::SocialPlatform, db::DbQuery};
@@ -18,6 +19,7 @@ pub struct BotQuery {
     pub has_token: Option<bool>,
     pub skip: Option<u64>,
     pub limit: Option<i64>,
+    pub exclude_ids: Option<Vec<bson::Uuid>>
 }
 
 impl BotQuery {
@@ -38,6 +40,9 @@ impl BotQuery {
     // fields
     pub fn has_token (&mut self) -> &mut Self { self.has_token = Some(true); self }
 
+    // helpers
+    pub fn exclude_ids(&mut self, ids: Vec<bson::Uuid>) -> &mut Self { self.exclude_ids = Some(ids); self }
+
     // options
     pub fn limit (&mut self, v: i64) -> &mut Self { self.limit = Some(v); self }
 }
@@ -49,6 +54,11 @@ impl DbQuery for BotQuery {
         if let Some(v) = &self.status { f.insert("status", to_value(v).unwrap().as_str()); }
         if let Some(v) = &self.platform { f.insert("platform", to_value(v).unwrap().as_str()); }
         if let Some(_v) = &self.has_token { f.insert("access_token", doc! { "$ne": bson::Bson::Null } ); }
+        if let Some(v) = &self.exclude_ids {
+            f.insert("id", doc! {
+                "$nin": v
+            });
+        }
         f
     }
     fn collect_sorting(&self) -> Document {
