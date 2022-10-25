@@ -3,6 +3,7 @@
 
 use std::{borrow::Borrow, env};
 
+use async_trait::async_trait;
 use bson::Document;
 use log::debug;
 use mongodb::{Collection, options::{ClientOptions, FindOptions, FindOneOptions }, Database};
@@ -10,11 +11,56 @@ use futures::stream::TryStreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
 
-use crate::{tasks::{BotTask, BotTaskType}, social::source::SocialSource, bots::Bot};
+use crate::{tasks::{BotTask, BotTaskType, events::ActionEvent}, social::source::SocialSource, bots::Bot};
 
 use self::errors::DbError;
 
 pub mod errors;
+
+#[async_trait]
+pub trait DbActions
+: DeserializeOwned + Unpin + Serialize + Sync + Send {
+    type Query: DbQuery + Sync;
+
+    fn get_collection(&self, db: &SocialsDb) -> Collection<Self>;
+    fn get_id(&self) -> bson::Uuid;
+
+    async fn insert_db(self: &mut Self, db: &SocialsDb) ->
+        Result<mongodb::results::InsertOneResult, crate::db::errors::DbError> {
+        let col = self.get_collection(db);
+        SocialsDb::insert_one(self, col).await
+    }
+
+    async fn update_db(self: &mut Self, db: &SocialsDb) ->
+        Result<mongodb::results::UpdateResult, DbError> {
+        let id = self.get_id();
+        let col = self.get_collection(db);
+        SocialsDb::update_by_id(id, self, &col).await
+    }
+
+    async fn delete_db(self: &mut Self, db: &SocialsDb) ->
+        Result<mongodb::results::DeleteResult, DbError> {
+        SocialsDb::delete_by_id(&self.get_id(), &self.get_collection(&db)).await
+    }
+
+    async fn find(&self, query: &Self::Query, db: &SocialsDb) -> Result<DbFindResult<Self>, DbError>
+    { SocialsDb::find(query, &self.get_collection(db)).await }
+
+    async fn find_by_id(&self, id: bson::Uuid, db: &SocialsDb) -> Result<Option<Self>, DbError> {
+        SocialsDb::find_by_id(id, &self.get_collection(db)).await
+    }
+
+    async fn get_fresh(self: &mut Self, db: &SocialsDb) -> Result<&mut Self, DbError> {
+        match SocialsDb::find_by_id(self.get_id(), &self.get_collection(db))
+            .await {
+                Ok(r) => match r {
+                    Some(t) => { *self = t; Ok(self) }
+                    _ => Ok(self)
+                },
+                Err(e) => Err(e)
+            }
+    }
+}
 
 pub trait DbQuery {
     fn collect_filters(&self) -> Document { Document::new() }
@@ -46,6 +92,7 @@ impl SocialsDb {
     pub fn collection<T>(&self, name: &str) -> Collection<T> { self.get_db().collection(name) }
     pub fn bots(&self) -> Collection<Bot> { self.get_db().collection("bots") }
     pub fn bots_tasks(&self) -> Collection<BotTask> { self.get_db().collection("bots_tasks") }
+    pub fn action_events(&self) -> Collection<ActionEvent> { self.get_db().collection("action_events") }
     pub fn social_sources(&self) -> Collection<SocialSource> { self.get_db().collection("social_sources") }
     pub fn task_types(&self) -> Collection<BotTaskType> { self.get_db().collection("task_types") }
 
@@ -152,7 +199,7 @@ impl SocialsDb {
         }
     }
 
-    pub async fn update_by_id<T>(id: bson::Uuid, item: T, collection: &Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
+    pub async fn update_by_id<T>(id: bson::Uuid, item: impl Borrow<T>, collection: &Collection<T>) -> Result<mongodb::results::UpdateResult, DbError>
     where
         T: Serialize,
     {
@@ -164,11 +211,21 @@ impl SocialsDb {
         }
     }
 
+    pub async fn delete_by_id<T>(id: &bson::Uuid, collection: &Collection<T>) -> Result<mongodb::results::DeleteResult, DbError>
+    {
+        let mut query = Document::new();
+        query.insert("id", id);
+        match collection.delete_one(query, None).await {
+            Ok(r) => Ok(r),
+            Err(_) => Err(DbError::delete_error())
+        }
+    }
+
     pub async fn delete_many<T, Q>(query: &Q, collection: &Collection<T>) -> Result<mongodb::results::DeleteResult, DbError>
     where
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery
-{
+    {
         match collection.delete_many(query.collect_filters(), None).await {
             Ok(r) => Ok(r),
             Err(_) => Err(DbError::delete_error())

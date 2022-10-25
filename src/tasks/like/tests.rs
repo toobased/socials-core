@@ -60,6 +60,7 @@ pub mod vk {
 
     pub async fn insert_like_task(db: &SocialsDb) {
         let action = crate::tasks::like::LikeAction {
+            target: TaskTarget::Post,
             data: crate::tasks::like::LikeTargetData {
                 like_count: 1,
                 item_id: Some("1250".to_string()),

@@ -1,13 +1,15 @@
 use async_trait::async_trait;
-use log::{info, warn};
+use log::info;
 use vk_client::client::VkClient;
 use vk_client::{likes, media, client::response::VkError};
 
 use crate::bots::errors::BotError;
 use crate::bots::query::BotQuery;
+use crate::db::DbActions;
 use crate::social::SocialPlatform;
 use crate::tasks::TaskActionEnum;
 use crate::tasks::errors::TaskError;
+use crate::tasks::events::ActionEvent;
 use crate::{tasks::{like::LikeAction, BotTask, TaskAction}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
@@ -135,6 +137,13 @@ impl SocialCore for VkCore {
                         action.add_used_bot(&bot.id);
                         task.action = TaskActionEnum::LikeAction(action);
                         task.update_db(&db).await.unwrap();
+
+                        // TODO remove event
+                        let mut event = ActionEvent::from_task(&task);
+                            event
+                                .set_amount(1)
+                                .set_bot_id(bot.id.clone())
+                                .insert_db(&db).await.unwrap();
                         continue
                     }
                     let query = likes::query::AddLikeQuery{
@@ -172,6 +181,12 @@ impl SocialCore for VkCore {
                             action.add_used_bot(&bot.id);
                             task.action = TaskActionEnum::LikeAction(action);
                             task.update_db(db).await.unwrap(); // TODO
+                            // adding event action
+                            let mut event = ActionEvent::from_task(&task);
+                            event
+                                .set_amount(1)
+                                .set_bot_id(bot.id.clone())
+                                .insert_db(&db).await.unwrap();
                         }
                     }
 

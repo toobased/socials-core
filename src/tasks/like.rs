@@ -68,6 +68,7 @@ impl LikeAction {
 }
 
 impl TaskAction for LikeAction {
+    fn target(&self) -> TaskTarget { self.target.clone() }
 
     fn calc_next_time_run(&self, task: &mut BotTask) {
         debug!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);

@@ -225,6 +225,14 @@ impl Default for TaskActionEnum {
 }
 
 impl TaskActionEnum {
+    pub fn target (&self) -> TaskTarget {
+        match self {
+            Self::LikeAction(a) => a.target(),
+            Self::WatchAction(a) => a.target(),
+            _ => TaskTarget::Dummy,
+        }
+    }
+
     fn need_run(task: &mut BotTask) -> bool {
         let action = task.action.clone();
         match action {
@@ -435,6 +443,7 @@ impl BotTask {
 }
 
 pub trait TaskAction {
+    fn target(&self) -> TaskTarget;
     fn do_stuff(&self) { println!("some stuff there") }
     fn need_run(&self, task: &mut BotTask) -> bool {
         if task.has_error() { return false; }

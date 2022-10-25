@@ -60,6 +60,7 @@ pub struct WatchAction {
 }
 
 impl TaskAction for WatchAction {
+    fn target(&self) -> TaskTarget { self.target.clone() }
     fn use_browser(&self) -> bool { true }
 
     fn check_done(&self, task: &mut BotTask) -> bool {
