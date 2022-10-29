@@ -10,6 +10,7 @@ use crate::{tasks::{BotTask, like::LikeAction, watch::WatchAction, TaskActionEnu
 use async_trait::async_trait;
 
 pub mod source;
+pub mod post;
 
 // social cores
 pub mod yt_core;

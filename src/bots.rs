@@ -1,9 +1,9 @@
-use std::time::SystemTime;
+use std::time::{SystemTime, Duration};
 
 use log::info;
 use serde::{Serialize, Deserialize};
 
-use crate::{social::SocialPlatform, db::{SocialsDb, errors::DbError}};
+use crate::{social::SocialPlatform, db::{SocialsDb, errors::DbError, DbActions}, tasks::{TaskAction, events::ActionEvent}, utils::pretty_duration};
 
 use self::{query::BotQuery, errors::BotError};
 
@@ -13,6 +13,9 @@ pub mod tests;
 // local moduels
 pub mod query;
 pub mod errors;
+
+#[derive(Debug, Clone, Default)]
+pub struct BotLimitSleep { pub limit: u64, pub sleep: Duration }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Gender { Male, Female, Unknown }
@@ -39,9 +42,9 @@ impl BotPlatformData {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default )]
 pub struct BotActionsRest {
-    like: Option<SystemTime>,
-    repost: Option<SystemTime>,
-    comment: Option<SystemTime>,
+    pub like: Option<SystemTime>,
+    pub repost: Option<SystemTime>,
+    pub comment: Option<SystemTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default )]
@@ -107,6 +110,41 @@ impl Bot {
     pub fn set_status_in_use(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
     pub fn set_status_action_required(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
     // eof status helpers
+    //
+    // sleep helpers
+    pub async fn after_action_sleep(&mut self, action: &impl TaskAction, db: &SocialsDb) -> &mut Self {
+        // TODO fix items len to total
+        // 24hr limit check
+        let l24 = action.bot_24hr_limit_sleep();
+        let last_24hr: u64 = ActionEvent::get_bot_last_24hr_events(&self.id, db, Some(action.action_type()))
+            .await.unwrap().items.len().try_into().unwrap();
+        if last_24hr >= l24.limit {
+            info!("[Bot 24hr limit sleep] {} reach 24hr limit: {}", self.id, l24.limit);
+            action.bot_assign_sleep(self, l24.sleep);
+            return self
+        }
+
+        // 1hr limit check
+        let last_1hr: u64 = ActionEvent::get_bot_last_1hr_events(&self.id, db, Some(action.action_type()))
+            .await.unwrap().items.len().try_into().unwrap();
+        let l1 = action.bot_1hr_limit_sleep();
+        if last_1hr >= l1.limit {
+            info!("[Bot 1hr limit sleep] {} reach 1hr limit: {}", self.id, l1.limit);
+            action.bot_assign_sleep(self, l1.sleep);
+            return self
+        }
+
+        // regular task sleep delay
+        let regular_sleep = action.bot_min_sleep();
+        info!(
+            "[Bot regular sleep] Bot: {} . Sleep for {}. metrics: |{} in 1hr| |{} in 24hr|",
+            self.id, pretty_duration(regular_sleep), last_1hr, last_24hr
+        );
+        action.bot_assign_sleep(self, regular_sleep);
+        return self
+    }
+    // eof sleep helpers
+
     // db helpers
     pub async fn get_fresh(
         &mut self,
@@ -181,4 +219,10 @@ impl Bot {
         };
         Ok(bot)
     }
+}
+
+impl DbActions for Bot {
+    type Query = BotQuery;
+    fn get_collection(&self,db: &SocialsDb) -> mongodb::Collection<Self> { db.bots() }
+    fn get_id(&self) -> bson::Uuid { self.id }
 }

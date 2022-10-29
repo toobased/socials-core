@@ -3,7 +3,9 @@ use std::time::{SystemTime, Duration};
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
-use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum};
+use crate::{bots::BotLimitSleep, utils::pretty_duration};
+
+use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType};
 
 #[cfg(test)]
 pub mod tests;
@@ -68,7 +70,28 @@ impl LikeAction {
 }
 
 impl TaskAction for LikeAction {
+
+    fn bot_assign_sleep(&self, bot: &mut crate::bots::Bot, sleep: Duration) {
+        let sleep_until = SystemTime::now().checked_add(sleep).unwrap();
+        info!("[Like Sleep] set sleep {} for {}", bot.id, pretty_duration(sleep));
+        bot.actions_rest.like = Some(sleep_until);
+    }
+    fn action_type(&self) -> TaskActionType { TaskActionType::Like }
     fn target(&self) -> TaskTarget { self.target.clone() }
+
+    // bot sleep times
+    fn bot_min_sleep(&self) -> Duration {
+        // 2min sleep
+        Duration::from_secs(120)
+    }
+    fn bot_1hr_limit_sleep(&self) -> BotLimitSleep {
+        // 1hr sleep
+        BotLimitSleep { limit: 7, sleep: Duration::from_secs(3600) }
+    }
+    fn bot_24hr_limit_sleep(&self) -> BotLimitSleep {
+        // 5hrs sleep
+        BotLimitSleep { limit: 15, sleep: Duration::from_secs(18000) }
+    }
 
     fn calc_next_time_run(&self, task: &mut BotTask) {
         debug!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);

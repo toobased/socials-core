@@ -9,9 +9,10 @@ pub async fn test_events_crud() {
     db_insert_dummy_event(&db).await;
 }
 
-pub async fn db_insert_dummy_event(db: &SocialsDb) { 
+pub async fn db_insert_dummy_event(db: &SocialsDb) -> ActionEvent {
     let mut event = make_dummy_event();
     event.insert_db(&db).await.unwrap();
+    event
     // event.delete_db(&db).await.unwrap();
 }
 pub fn make_dummy_event() -> ActionEvent { ActionEvent::default() }

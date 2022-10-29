@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 use serde_json::to_value;
 
-use crate::{social::SocialPlatform, db::DbQuery};
+use crate::{social::SocialPlatform, db::DbQuery, tasks::TaskActionType, utils::{mdb_cond_or_null, unix_now_secs_f64}};
 
 use super::BotStatus;
 
@@ -19,12 +19,16 @@ pub struct BotQuery {
     pub has_token: Option<bool>,
     pub skip: Option<u64>,
     pub limit: Option<i64>,
-    pub exclude_ids: Option<Vec<bson::Uuid>>
+    pub exclude_ids: Option<Vec<bson::Uuid>>,
+    pub awake_for_action: Option<TaskActionType>
 }
 
 impl BotQuery {
     pub fn new() -> Self { Self::default() }
+
     pub fn is_ready(&mut self) -> &mut Self { self.status = Some(BotStatus::Ready); self }
+    pub fn is_awake_for(&mut self, v: TaskActionType) -> &mut Self { self.awake_for_action = Some(v); self }
+
     pub fn with_platform(&mut self, p: SocialPlatform) -> &mut Self { self.platform = Some(p); self }
 
     // TODO add not used by ids
@@ -49,6 +53,7 @@ impl BotQuery {
 
 impl DbQuery for BotQuery {
     fn collect_filters(&self) -> bson::Document {
+        // mongodb::options::AggregateOptions::builder().bypa
         let mut f = Document::new();
         if let Some(v) = &self.id { f.insert("id", v); }
         if let Some(v) = &self.status { f.insert("status", to_value(v).unwrap().as_str()); }
@@ -58,6 +63,17 @@ impl DbQuery for BotQuery {
             f.insert("id", doc! {
                 "$nin": v
             });
+        }
+        if let Some(v) = &self.awake_for_action {
+            let key = match v {
+                TaskActionType::Like => "actions_rest.like.secs_since_epoch",
+                _ => ""
+            };
+
+            mdb_cond_or_null(
+                &mut f, key,
+                doc! { "$lte": unix_now_secs_f64() }
+            );
         }
         f
     }

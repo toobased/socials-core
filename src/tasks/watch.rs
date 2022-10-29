@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::browser_core::BrowserCore;
 
-use super::{TaskAction, BotTask, TaskTarget};
+use super::{TaskAction, BotTask, TaskTarget, TaskActionType};
 
 // use super::{TaskAction, BotTask};
 
@@ -60,6 +60,8 @@ pub struct WatchAction {
 }
 
 impl TaskAction for WatchAction {
+
+    fn action_type(&self) -> TaskActionType { TaskActionType::Watch }
     fn target(&self) -> TaskTarget { self.target.clone() }
     fn use_browser(&self) -> bool { true }
 

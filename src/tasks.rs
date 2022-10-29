@@ -1,7 +1,7 @@
 use std::time::{SystemTime, Duration};
 
-use bson::{Document, Uuid};
-use log::info;
+use bson::{Document, Uuid, doc};
+use log::{info, warn};
 use mongodb::options::{FindOptions, FindOneOptions};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
@@ -11,7 +11,7 @@ use crate::{
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
         yt_core::YtCore, SocialCore, SocialPlatform,
-    },
+    }, bots::{BotLimitSleep, Bot}, utils::{mdb_cond_or_null, unix_now_secs_f64},
 };
 
 use self::{errors::TaskError, like::LikeAction, watch::WatchAction};
@@ -80,82 +80,52 @@ pub struct BotTaskQuery {
     pub sort_by_updated_date: Option<i32>,
     pub skip: Option<u64>,
     pub limit: Option<i64>,
+    pub not_sleep: Option<bool>
 }
 
 impl BotTaskQuery {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn is_active(&mut self) -> &mut Self {
-        self.status = Some(BotTaskStatus::Active);
-        self
-    }
-    pub fn not_action_locked(&mut self) -> &mut Self {
-        self.is_locked = Some(false);
-        self
-    }
-    pub fn is_finished(&mut self) -> &mut Self {
-        self.status = Some(BotTaskStatus::Finished);
-        self
-    }
-    pub fn is_browser(&mut self) -> &mut Self {
-        self.is_browser = Some(1);
-        self
-    }
-    pub fn not_browser(&mut self) -> &mut Self {
-        self.is_browser = Some(0);
-        self
-    }
-    pub fn top_old_updated(&mut self) -> &mut Self {
-        self.sort_by_updated_date = Some(1);
-        self
-    }
-    pub fn top_fresh_updated(&mut self) -> &mut Self {
-        self.sort_by_updated_date = Some(-1);
-        self
-    }
+    pub fn new() -> Self { Self::default() }
+    pub fn is_active(&mut self) -> &mut Self { self.status = Some(BotTaskStatus::Active); self }
+    pub fn not_action_locked(&mut self) -> &mut Self { self.is_locked = Some(false); self }
+    pub fn is_finished(&mut self) -> &mut Self { self.status = Some(BotTaskStatus::Finished); self }
+    pub fn is_browser(&mut self) -> &mut Self { self.is_browser = Some(1); self }
+    pub fn not_browser(&mut self) -> &mut Self { self.is_browser = Some(0); self }
+    pub fn top_old_updated(&mut self) -> &mut Self { self.sort_by_updated_date = Some(1); self }
+    pub fn top_fresh_updated(&mut self) -> &mut Self { self.sort_by_updated_date = Some(-1); self }
+    pub fn not_sleep(&mut self) -> &mut Self { self.not_sleep = Some(true); self }
 }
 
 impl DbQuery for BotTaskQuery {
     fn collect_filters(&self) -> Document {
         let mut f = Document::new();
-        if let Some(i) = &self.id {
-            f.insert("id", i);
-        }
-        if let Some(i) = &self.source_id {
-            f.insert("social_source.id", i);
-        }
-        if let Some(i) = &self.title {
-            f.insert("title", i.as_str());
-        }
-        if let Some(p) = &self.platform {
-            f.insert("platform", to_value(p).unwrap().as_str());
-        }
-        if let Some(i) = &self.status {
-            f.insert("status", to_value(i).unwrap().as_str());
-        }
-        if let Some(i) = &self.is_active {
-            f.insert("is_active", *i != 0);
-        }
+        if let Some(i) = &self.id { f.insert("id", i); }
+        if let Some(i) = &self.source_id { f.insert("social_source.id", i); }
+        if let Some(i) = &self.title { f.insert("title", i.as_str()); }
+        if let Some(p) = &self.platform { f.insert("platform", to_value(p).unwrap().as_str()); }
+        if let Some(i) = &self.status { f.insert("status", to_value(i).unwrap().as_str()); }
+        if let Some(i) = &self.is_active { f.insert("is_active", *i != 0); }
+
         if let Some(i) = &self.is_browser {
-            let b = match i {
-                0 => false,
-                1 => true,
-                _ => false,
-            };
+            let b = match i { 0 => false, 1 => true, _ => false, };
             f.insert("options.is_browser", b);
+        }
+
+        if let Some(_i) = &self.not_sleep {
+            let key: &str = "next_run_time.secs_since_epoch";
+            mdb_cond_or_null(
+                &mut f, key,
+                doc! { "$lte": unix_now_secs_f64() }
+            );
         }
         f
     }
 
     fn collect_sorting(&self) -> Document {
         let mut s = Document::new();
-        if let Some(i) = &self.sort_by_created_date {
-            s.insert("date_created", i);
-        }
-        if let Some(i) = &self.sort_by_updated_date {
-            s.insert("date_updated", i);
-        }
+        if let Some(i) = &self.sort_by_created_date { s.insert("date_created.secs_since_epoch", i); }
+        if let Some(i) = &self.sort_by_created_date { s.insert("date_created.nanos_since_epoch", i); }
+        if let Some(i) = &self.sort_by_updated_date { s.insert("date_updated.secs_since_epoch", i); }
+        if let Some(i) = &self.sort_by_updated_date { s.insert("date_updated.nanos_since_epoch", i); }
         s
     }
 
@@ -270,15 +240,15 @@ impl TaskActionEnum {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotTask {
     pub id: bson::Uuid,
-    is_active: bool,
+    pub is_active: bool,
     // is_locked: bool,
     status: BotTaskStatus,
     pub date_created: SystemTime,
     pub date_updated: SystemTime,
     pub title: String,
-    platform: SocialPlatform,
+    pub platform: SocialPlatform,
     pub next_run_time: Option<SystemTime>,
-    options: BotTaskOptions,
+    pub options: BotTaskOptions,
     error: Option<TaskError>,
     pub action_type: TaskActionType,
     pub action: TaskActionEnum,
@@ -369,7 +339,7 @@ impl BotTask {
     ) -> Result<mongodb::results::UpdateResult, DbError> {
         // update task date_updated
         self.date_updated = SystemTime::now();
-        SocialsDb::update_by_id(self.id, self.clone(), &db.bots_tasks()).await
+        SocialsDb::update_by_id(self.id, self, &db.bots_tasks()).await
     }
 
     async fn make_v2(&mut self, db: &SocialsDb) {
@@ -443,6 +413,18 @@ impl BotTask {
 }
 
 pub trait TaskAction {
+
+    fn action_type(&self) -> TaskActionType;
+    fn bot_assign_sleep(&self, _bot: &mut Bot, _sleep: Duration) {
+        warn!("Call bot sleep from TaskAction. Not implemented");
+    }
+    fn bot_min_sleep(&self) -> Duration { Duration::from_secs(60) }
+    fn bot_1hr_limit_sleep(&self) -> BotLimitSleep {
+        BotLimitSleep { limit: 3, sleep: Duration::from_secs(300) }
+    }
+    fn bot_24hr_limit_sleep(&self) -> BotLimitSleep {
+        BotLimitSleep { limit: 12, sleep: Duration::from_secs(18000) }
+    }
     fn target(&self) -> TaskTarget;
     fn do_stuff(&self) { println!("some stuff there") }
     fn need_run(&self, task: &mut BotTask) -> bool {

@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{social::SocialPlatform, db::{SocialsDb, DbActions}};
+use crate::{social::SocialPlatform, db::{SocialsDb, DbActions, errors::DbError, DbFindResult}};
 
 use self::query::ActionEventQuery;
 
@@ -51,7 +51,6 @@ impl Default for ActionEvent {
 }
 
 impl ActionEvent {
-
     pub fn from_task(task: &BotTask) -> Self {
         Self {
             id: bson::Uuid::new(),
@@ -67,6 +66,30 @@ impl ActionEvent {
 
     pub fn set_bot_id(&mut self, v: bson::Uuid) -> &mut Self { self.bot_id = Some(v); self }
     pub fn set_amount(&mut self, v: u32) -> &mut Self { self.payload.count_amount = Some(v); self }
+    pub fn set_action_type(&mut self, v: TaskActionType) -> &mut Self { self.action_type = v; self }
+    pub fn set_platform(&mut self, v: SocialPlatform) -> &mut Self { self.platform = v; self }
+
+    // db helpers
+    pub async fn get_bot_last_1hr_events(id: &bson::Uuid, db: &SocialsDb, action_type: Option<TaskActionType>)
+    -> Result<DbFindResult<ActionEvent>, DbError> {
+        let mut q = ActionEventQuery {
+            bot_id: Some(id.clone()),
+            action_type,
+            ..Default::default()
+        };
+        q.with_last_1hr();
+        SocialsDb::find(&q, &db.action_events()).await
+    }
+    pub async fn get_bot_last_24hr_events(id: &bson::Uuid, db: &SocialsDb, action_type: Option<TaskActionType>)
+    -> Result<DbFindResult<ActionEvent>, DbError> {
+        let mut q = ActionEventQuery {
+            bot_id: Some(id.clone()),
+            action_type,
+            ..Default::default()
+        };
+        q.with_last_24hr();
+        SocialsDb::find(&q, &db.action_events()).await
+    }
 }
 
 impl DbActions for ActionEvent {

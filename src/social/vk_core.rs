@@ -7,7 +7,7 @@ use crate::bots::errors::BotError;
 use crate::bots::query::BotQuery;
 use crate::db::DbActions;
 use crate::social::SocialPlatform;
-use crate::tasks::TaskActionEnum;
+use crate::tasks::{TaskActionEnum, TaskActionType};
 use crate::tasks::errors::TaskError;
 use crate::tasks::events::ActionEvent;
 use crate::{tasks::{like::LikeAction, BotTask, TaskAction}, db::SocialsDb};
@@ -85,6 +85,7 @@ impl SocialCore for VkCore {
         let mut bots_query = BotQuery::new();
         bots_query
             .is_ready()
+            .is_awake_for(TaskActionType::Like)
             .has_token()
             .top_old_used()
             .with_platform(SocialPlatform::Vk)
@@ -130,23 +131,16 @@ impl SocialCore for VkCore {
                 },
                 Ok(r) => {
                     if r.liked > 0 {
-                        info!("task: {} is liked by bot: {}", task.id, bot.id);
+                        info!("[Already liked] task: {}, bot: {}", task.id, bot.id);
                         task.get_fresh(&db).await.unwrap();
                         let mut action: LikeAction = task.action.clone()
                             .try_into().ok().unwrap();
                         action.add_used_bot(&bot.id);
                         task.action = TaskActionEnum::LikeAction(action);
                         task.update_db(&db).await.unwrap();
-
-                        // TODO remove event
-                        let mut event = ActionEvent::from_task(&task);
-                            event
-                                .set_amount(1)
-                                .set_bot_id(bot.id.clone())
-                                .insert_db(&db).await.unwrap();
                         continue
                     }
-                    let query = likes::query::AddLikeQuery{
+                    let query = likes::query::AddLikeQuery {
                         media_type: media::POST.to_string(),
                         owner_id: owner_id.clone(),
                         item_id: item_id.clone(),
@@ -172,21 +166,27 @@ impl SocialCore for VkCore {
                             break;
                         },
                         Ok(_r) => {
-                            // TODO add event stats etc.
                             info!("bot {} added like to {} task", bot.id, task.id);
                             task.get_fresh(db).await.unwrap(); // TODO
                             let mut action: LikeAction = task.action.clone()
                                 .try_into().ok().unwrap(); // TODO handle error
                             action.stats.like_count += 1;
                             action.add_used_bot(&bot.id);
-                            task.action = TaskActionEnum::LikeAction(action);
+                            task.action = TaskActionEnum::LikeAction(action.clone());
                             task.update_db(db).await.unwrap(); // TODO
                             // adding event action
                             let mut event = ActionEvent::from_task(&task);
                             event
                                 .set_amount(1)
                                 .set_bot_id(bot.id.clone())
+                                .set_platform(task.platform.clone())
+                                .set_action_type(action.action_type())
                                 .insert_db(&db).await.unwrap();
+                            // TODO bot delay
+                            bot
+                                .get_fresh(&db).await.unwrap() // TODO safe
+                                .after_action_sleep(&action, &db).await
+                                .update_db(&db).await.unwrap(); // TODO handle safe
                         }
                     }
 
