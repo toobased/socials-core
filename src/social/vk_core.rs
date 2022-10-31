@@ -14,6 +14,9 @@ use crate::{tasks::{like::LikeAction, BotTask, TaskAction}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
 
+pub mod post;
+pub mod attachments;
+
 pub struct VkCoreConfig { }
 
 impl Default for VkCoreConfig {
@@ -73,7 +76,6 @@ impl SocialCore for VkCore {
     type CoreConfig = VkCoreConfig;
 
     fn config(&self) -> &VkCoreConfig { &self.config }
-
     fn info(&self) -> String { "VkCore".to_string() }
 
     async fn like(&self, action: LikeAction, task: &mut BotTask, db: &SocialsDb) {

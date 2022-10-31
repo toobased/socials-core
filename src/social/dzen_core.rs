@@ -39,11 +39,10 @@ impl DzenCore {
 #[async_trait]
 impl SocialCore for DzenCore {
     type CoreConfig = DzenCoreConfig;
+
     fn config(&self) -> &DzenCoreConfig { &self.config }
 
-    fn info(&self) -> String {
-        "DzenCore".to_string()
-    }
+    fn info(&self) -> String { "DzenCore".to_string() }
     async fn like(&self, _action: LikeAction, _task: &mut BotTask, _db: &SocialsDb) {
         println!("run for dzen platform")
     }

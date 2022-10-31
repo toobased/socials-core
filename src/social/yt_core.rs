@@ -35,12 +35,12 @@ impl Default for YtCore {
 
 impl YtCore {
     pub fn new () -> Self { Self::default() }
-
 }
 
 #[async_trait]
 impl SocialCore for YtCore {
     type CoreConfig = YtCoreConfig;
+
 
     fn config(&self) -> &YtCoreConfig { &self.config }
 

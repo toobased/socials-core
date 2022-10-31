@@ -10,7 +10,7 @@ use crate::{
     db::{errors::DbError, DbQuery, SocialsDb},
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
-        yt_core::YtCore, SocialCore, SocialPlatform,
+        yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost,
     }, bots::{BotLimitSleep, Bot}, utils::{mdb_cond_or_null, unix_now_secs_f64},
 };
 
@@ -154,6 +154,8 @@ pub struct BotTaskCreate {
     pub action: TaskActionEnum,
     #[serde(default)]
     pub social_source_id: Option<bson::Uuid>,
+    #[serde(default)]
+    pub extra: TaskExtra,
 }
 
 impl BotTaskCreate {
@@ -237,6 +239,15 @@ impl TaskActionEnum {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct TaskExtra {
+    pub post: Option<SocialPost>
+}
+
+impl TaskExtra {
+    pub fn with_post(&mut self, v: SocialPost) -> &mut Self { self.post = Some(v); self }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotTask {
     pub id: bson::Uuid,
@@ -252,6 +263,8 @@ pub struct BotTask {
     error: Option<TaskError>,
     pub action_type: TaskActionType,
     pub action: TaskActionEnum,
+    #[serde(default="TaskExtra::default")]
+    pub extra: TaskExtra,
     pub social_source: Option<SocialSource>,
 }
 
@@ -299,19 +312,19 @@ impl BotTask {
 
     /*
     pub async fn lock_db(
-        &mut self,
-        db: &SocialsDb
+    &mut self,
+    db: &SocialsDb
     ) -> Result<mongodb::results::UpdateResult, DbError> {
-        self.is_locked = true;
-        self.update_db(db).await
+    self.is_locked = true;
+    self.update_db(db).await
     }
 
     pub async fn unlock_db(
-        &mut self,
-        db: &SocialsDb
+    &mut self,
+    db: &SocialsDb
     ) -> Result<mongodb::results::UpdateResult, DbError> {
-        self.is_locked = false;
-        self.update_db(db).await
+    self.is_locked = false;
+    self.update_db(db).await
     }
     */
 
@@ -408,6 +421,7 @@ impl BotTask {
             action: t.action,
             options,
             social_source,
+            extra: TaskExtra::default()
         }
     }
 }

@@ -9,8 +9,11 @@ use crate::{tasks::{BotTask, like::LikeAction, watch::WatchAction, TaskActionEnu
 
 use async_trait::async_trait;
 
+pub mod errors;
+
 pub mod source;
 pub mod post;
+pub mod attachments;
 
 // social cores
 pub mod yt_core;
