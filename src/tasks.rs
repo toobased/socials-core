@@ -2,12 +2,12 @@ use std::time::{SystemTime, Duration};
 
 use bson::{Document, Uuid, doc};
 use log::{info, warn};
-use mongodb::options::{FindOptions, FindOneOptions};
+use mongodb::{options::{FindOptions, FindOneOptions}, Collection};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
 use crate::{
-    db::{errors::DbError, DbQuery, SocialsDb},
+    db::{errors::DbError, DbQuery, SocialsDb, DbActions},
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
         yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost,
@@ -421,9 +421,15 @@ impl BotTask {
             action: t.action,
             options,
             social_source,
-            extra: TaskExtra::default()
+            extra: t.extra
         }
     }
+}
+
+impl DbActions for BotTask {
+    type Query = BotTaskQuery;
+    fn get_collection(&self,db: &SocialsDb) -> Collection<Self> { db.bots_tasks() }
+    fn get_id(&self) -> bson::Uuid { self.id }
 }
 
 pub trait TaskAction {
