@@ -1,34 +1,54 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult, DbActions}, social::{post::SocialPost, SocialPlatform}};
 use crate::db::DbQuery;
 
 #[tokio::test]
 pub async fn test_tasks_crud() {
     env_logger::init();
+    // init db
+    let db = SocialsDb::new_test_instance().await.unwrap();
+
     // test remove tasks
-    db_remove_tasks().await;
+    db_remove_tasks(&db).await;
     // test create
     // db_create_task_json().await;
-    db_create_task().await;
+    db_create_task(&db).await;
     // test find many
-    db_get_bots_tasks().await;
+    db_get_bots_tasks(&db).await;
     // test update one
-    db_update_by_id_task().await;
+    db_update_by_id_task(&db).await;
     // test find one
-    db_find_one_task().await;
-    db_find_one_regular().await;
-    db_find_one_browser().await;
+    db_find_one_task(&db).await;
+    db_find_one_regular(&db).await;
+    db_find_one_browser(&db).await;
+
+    // test create with extra
+    test_tasks_with_extra(&db).await;
 }
 
 #[tokio::test]
 pub async fn test_tasks_types_crud () {
-    // db_remove_tasks().await;
-    db_create_task_type().await
+    let db = SocialsDb::new_test_instance().await.unwrap();
+    db_create_task_type(&db).await
 }
 
-pub async fn db_create_task_type() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn test_tasks_with_extra (db: &SocialsDb) {
+    test_tasks_with_extra_vk(&db).await
+}
+
+pub async fn test_tasks_with_extra_vk(db: &SocialsDb) {
+    let mut new = BotTaskCreate::default();
+    let post = SocialPost::get_post_by_url(
+        &SocialPlatform::Vk,
+        "https://vk.com/kf_films?w=wall-211982694_1417"
+    ).await.unwrap();
+    new.extra.post = Some(post);
+    let mut task = BotTask::create_from(db, new).await;
+    task.insert_db(db).await.unwrap();
+}
+
+pub async fn db_create_task_type(db: &SocialsDb) {
     let traw = r#"{
         "action_type": "Watch",
         "name": "Watch action",
@@ -51,15 +71,13 @@ pub async fn db_create_task_type() {
     SocialsDb::insert_one(target, db.task_types()).await.unwrap();
 }
 
-pub async fn db_remove_tasks() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_remove_tasks(db: &SocialsDb) {
     SocialsDb::delete_many(
         &BotTaskQuery::default(), &db.bots_tasks()
     ).await.expect("Some error while deleting");
 }
 
-pub async fn db_create_task() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_create_task(db: &SocialsDb) {
 
     let action = crate::tasks::watch::WatchAction {
         data: crate::tasks::watch::WatchTargetData {
@@ -115,16 +133,14 @@ pub async fn db_create_task_json() {
 }
 
 // #[tokio::test]
-pub async fn db_get_bots_tasks() -> DbFindResult<BotTask> {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_get_bots_tasks(db: &SocialsDb) -> DbFindResult<BotTask> {
     let query = BotTaskQuery::default();
     SocialsDb::find(&query, &db.bots_tasks()).await.unwrap()
 }
 
 // #[tokio::test]
-pub async fn db_update_by_id_task() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
-    let mut find_result = db_get_bots_tasks().await;
+pub async fn db_update_by_id_task(db: &SocialsDb) {
+    let mut find_result = db_get_bots_tasks(&db).await;
     let task = find_result.items.get_mut(0).unwrap();
     task.title = "testing_stuff_new".to_string();
     let _item = SocialsDb::update_by_id(task.id, task.clone(), &db.bots_tasks())
@@ -132,8 +148,7 @@ pub async fn db_update_by_id_task() {
 }
 
 // #[tokio::test]
-pub async fn db_find_one_task() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_find_one_task(db: &SocialsDb) {
     let query = BotTaskQuery {
         title: Some("testing_stuff_new".to_string()),
         is_browser: Some(1),
@@ -146,15 +161,13 @@ pub async fn db_find_one_task() {
     assert_eq!("testing_stuff_new".to_string(), item.title)
 }
 
-pub async fn db_find_one_regular() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_find_one_regular(db: &SocialsDb) {
     let item = SocialsDb::find_one(&regular_task_query(), &db.bots_tasks())
         .await.unwrap();
     info!("Found regular {:#?}", item);
 }
 
-pub async fn db_find_one_browser() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn db_find_one_browser(db: &SocialsDb) {
     let item = SocialsDb::find_one(&browser_task_query(), &db.bots_tasks())
         .await.unwrap();
     info!("Found browser {:#?}", item);
