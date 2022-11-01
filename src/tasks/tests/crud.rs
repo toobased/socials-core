@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult, DbActions}, social::{post::SocialPost, SocialPlatform}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult, DbActions, DummyQuery}, social::{post::SocialPost, SocialPlatform}};
 use crate::db::DbQuery;
 
 #[tokio::test]
@@ -30,7 +30,12 @@ pub async fn test_tasks_crud() {
 #[tokio::test]
 pub async fn test_tasks_types_crud () {
     let db = SocialsDb::new_test_instance().await.unwrap();
-    db_create_task_type(&db).await
+    db_clean_task_types(&db).await;
+    db_create_task_type(&db).await;
+}
+
+pub async fn db_clean_task_types (db: &SocialsDb) {
+    SocialsDb::delete_many(&DummyQuery::default(), &db.task_types()).await.unwrap();
 }
 
 pub async fn test_tasks_with_extra (db: &SocialsDb) {

@@ -164,7 +164,7 @@ impl BotTaskCreate {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone )]
 pub struct BotTaskOptions {
     pub delete_after_finished: bool,
     pub is_hidden: bool,
@@ -402,7 +402,7 @@ impl BotTask {
         };
         // TODO!
         let options = BotTaskOptions {
-            is_testing: true,
+            is_testing: t.is_testing,
             is_browser: t.action_type.is_default_browser(&t.platform),
             ..Default::default()
         };

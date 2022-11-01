@@ -34,6 +34,7 @@ impl LikeTargetData {
 pub struct LikeStats {
     pub like_count: i32,
     pub processed_posts_ids: Vec<String>,
+    #[serde(default="Vec::default")]
     pub bots_used: Vec<bson::Uuid>
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
