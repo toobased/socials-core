@@ -306,7 +306,7 @@ impl BotTask {
         self.set_error(e).set_status_error()
     }
     pub fn set_error(&mut self, e: TaskError) -> &mut Self {
-        self.error = Some(e); self.is_active = false; self
+        self.error = Some(e); self.is_active = false; self.set_status_error(); self
     }
     pub fn clear_error(&mut self) -> &mut Self { self.error = None; self }
 
