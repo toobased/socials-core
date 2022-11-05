@@ -2,35 +2,45 @@
 
 use log::debug;
 
-use crate::{tasks::{BotTask, BotTaskCreate, TaskActionType, TaskActionEnum, watch::{WatchAction, WatchTargetData}, BotTaskQuery}, db::SocialsDb, social::SocialPlatform};
+use crate::{tasks::{BotTask, BotTaskCreate, TaskActionType, TaskActionEnum, watch::{WatchAction, WatchTargetData}, BotTaskQuery}, db::{SocialsDb, DbActions}, social::SocialPlatform};
 
-#[tokio::test]
-async fn test_task_actions () {
-    env_logger::init();
-    // test_task_like().await;
-    // test_task_watch().await;
-    db_remove_tasks().await;
-    // test_task_watch_db().await;
-    // create_test_watch_actions(2).await;
-    test_threaded_watch().await;
+pub mod yt {
+
+    #[tokio::test]
+    pub async fn test_watch_yt () {
+        env_logger::try_init().ok();
+        log::set_max_level(log::LevelFilter::Info);
+        let db = super::SocialsDb::new_test_instance().await.unwrap();
+        super::db_remove_tasks(&db).await;
+        for _i in 0..3 { super::test_task_watch(&db).await; }
+    }
 }
 
-pub async fn db_remove_tasks() {
-    let db = SocialsDb::new_test_instance().await.unwrap();
+#[tokio::test]
+pub async fn test_task_actions () {
+    env_logger::try_init().ok();
+    let _db = SocialsDb::new_test_instance().await.unwrap();
+    // test_task_like().await;
+    // for _i in 0..4 { test_task_watch(&db).await; }
+    // db_remove_tasks(&db).await;
+    // test_task_watch_db().await;
+    // create_test_watch_actions(2).await;
+    // test_threaded_watch().await;
+}
+
+pub async fn db_remove_tasks(db: &SocialsDb) {
     SocialsDb::delete_many(
         &BotTaskQuery::default(), &db.bots_tasks()
     ).await.expect("Some error while deleting");
 }
 
-pub async fn test_task_watch () {
-    env_logger::init();
-    let db = SocialsDb::new_test_instance().await.unwrap();
+pub async fn test_task_watch (db: &SocialsDb) {
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
-            watch_count: 0,
-            watch_seconds: 5,
-            time_spread: 0, // 3600 - 60 minutes for task
-            resource_link: "https://www.youtube.com/watch?v=zuL55W3Ivtk&t=3s".to_string(),
+            watch_count: 2,
+            watch_seconds: 2,
+            time_spread: 1, // 3600 - 60 minutes for task
+            resource_link: "https://www.youtube.com/watch?v=jbsZRyNHliY".to_string(),
             ..Default::default()
         },
         ..Default::default()
@@ -42,6 +52,7 @@ pub async fn test_task_watch () {
         ..Default::default()
     };
     let mut task = BotTask::create_from(&db, new_task).await;
+    task.insert_db(db).await.unwrap();
     task.make(&db).await;
 }
 
