@@ -41,23 +41,30 @@ impl VkCore {
     pub fn make_client(token: &str) -> VkClient { VkClient::init(token) }
 
     pub fn parse_error(e: &VkError) -> VkCoreParsedError {
-        let m = Some(e.merge_msg()); let d = e.log.clone(); let c = e.error_code;
+        let m = e.merge_msg();
+        let d = e.log.clone().unwrap_or("".to_string());
+        let ml = Some(m.as_str()); let dl = Some(d.as_str());
+        let c = e.error_code;
         // parse user errors
         let usr_err = match c {
-            5 => BotError::auth(m, d),
-            7|15|17|24|30|200|201|203|500|600 => BotError::access_denied(m, d),
-            18 => BotError::ban(m, d),
-            14 => BotError::captcha(m, d),
+            5 => BotError::auth(ml, dl),
+            7|15|17|24|30|200|201|203|500|600 => BotError::access_denied(ml, dl),
+            18 => BotError::ban(ml, dl),
+            14 => BotError::captcha(ml, dl),
             _ => BotError::dummy()
         };
         if !usr_err.is_dummy() { return VkCoreParsedError::Bot(usr_err)}
-        let m = Some(e.merge_msg()); let d = e.log.clone();
+
+        let m = e.merge_msg();
+        let d = e.log.clone().unwrap_or("".to_string());
+        let ml = Some(m.as_str()); let dl = Some(d.as_str());
+
         // parse task errors
         let task_err = match c {
-            1 => TaskError::unknown(m, d),
+            1 => TaskError::unknown(ml, dl),
             2|3|4|6|8|9|10|16|20|21|23|28|29|100|101|150|603 =>
-                TaskError::action_error(m, d),
-            _ => TaskError::unknown(m, d)
+                TaskError::action_error(ml, dl),
+            _ => TaskError::unknown(ml, dl)
         };
         VkCoreParsedError::Task(task_err)
     }

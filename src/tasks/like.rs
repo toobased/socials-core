@@ -1,11 +1,12 @@
 use std::time::{SystemTime, Duration};
 
+use async_trait::async_trait;
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
-use crate::{bots::BotLimitSleep, utils::pretty_duration};
+use crate::{bots::BotLimitSleep, utils::pretty_duration, social::{SocialPlatform, post::SocialPost}};
 
-use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType};
+use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType, errors::TaskError, ActionExtra};
 
 #[cfg(test)]
 pub mod tests;
@@ -20,7 +21,7 @@ pub struct LikeTargetData {
     last_items_check_count: i32,
     pub owner_id: Option<String>,
     pub item_id: Option<String>,
-    resource_link: String,
+    pub resource_link: Option<String>,
     #[serde(default="LikeTargetData::default_time_spread")]
     pub time_spread: u64
     // date_finish: Option<SystemTime>
@@ -50,7 +51,9 @@ pub struct LikeAction {
     #[serde(default="LikeStats::default")]
     pub stats: LikeStats,
     #[serde(default="LikeSettings::default")]
-    pub settings: LikeSettings
+    pub settings: LikeSettings,
+    #[serde(default="ActionExtra::default")]
+    pub extra: ActionExtra,
 }
 
 impl TryFrom<TaskActionEnum> for LikeAction {
@@ -70,7 +73,23 @@ impl LikeAction {
     }
 }
 
+#[async_trait]
 impl TaskAction for LikeAction {
+
+    async fn validate_assign_data(&mut self, platform: &SocialPlatform) -> Result<bool, TaskError> {
+        if self.data.owner_id.is_some() && self.data.item_id.is_some() { return Ok(true) }
+        match &self.data.resource_link {
+            None => Err(TaskError::invalid_data(Some("No target data. No resource link"))),
+            Some(v) => match SocialPost::get_post_by_url(platform, v).await {
+                Ok(d) => {
+                    self.data.owner_id = d.owner_id;
+                    self.data.item_id = d.post_id;
+                    Ok(true)
+                }
+                Err(e) => Err(e.into())
+            }
+        }
+    }
 
     fn bot_assign_sleep(&self, bot: &mut crate::bots::Bot, sleep: Duration) {
         let sleep_until = SystemTime::now().checked_add(sleep).unwrap();

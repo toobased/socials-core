@@ -71,8 +71,8 @@ pub trait SocialCore {
                         Err(_) => {
                             browser.close().await;
                             return Err(TaskError::action_error(
-                                Some("Cant find video play btn element".to_string()),
-                                Some("Prob. need to improve social interaction".to_string())
+                                Some("Cant find video play btn element"),
+                                Some("Prob. need to improve social interaction")
                             ))
                         }
                         Ok(e) => {

@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType}, db::{SocialsDb, DbFindResult, DbActions, DummyQuery}, social::{post::SocialPost, SocialPlatform}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType, like::LikeAction, ActionExtra}, db::{SocialsDb, DbFindResult, DbActions, DummyQuery}, social::{post::SocialPost, SocialPlatform}};
 use crate::db::DbQuery;
 
 #[tokio::test]
@@ -48,7 +48,15 @@ pub async fn test_tasks_with_extra_vk(db: &SocialsDb) {
         &SocialPlatform::Vk,
         "https://vk.com/kf_films?w=wall-211982694_1417"
     ).await.unwrap();
-    new.extra.post = Some(post);
+    let action = LikeAction {
+        extra: ActionExtra {
+            post: Some(post),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    new.action = TaskActionEnum::LikeAction(action);
+    // new.extra.post = Some(post);
     let mut task = BotTask::create_from(db, new).await;
     task.insert_db(db).await.unwrap();
 }

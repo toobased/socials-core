@@ -9,9 +9,9 @@ impl Default for SocialErrorKind { fn default () -> Self { Self::Dummy } }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct SocialError {
-    kind: SocialErrorKind,
-    msg: String,
-    detail_msg: String,
+    pub kind: SocialErrorKind,
+    pub msg: String,
+    pub detail_msg: String,
 }
 
 impl SocialError {

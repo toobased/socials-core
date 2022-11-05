@@ -72,7 +72,7 @@ impl SocialPostActions for VkCore {
             posts: data,
             ..Default::default()
         };
-        let client = VkClient::init_test();
+        let client = VkClient::init_admin();
         let res = vk_client::wall::get_by_id(&client, q).await;
         match res {
             Err(_) => e,

@@ -3,6 +3,10 @@ pub mod vk {
 
     use crate::{db::{SocialsDb, DbActions}, tasks::{TaskActionEnum, TaskActionType, BotTask, BotTaskCreate, TaskTarget, BotTaskQuery}, social::SocialPlatform, bots::{query::BotQuery, BotCreate, Bot}};
 
+    static ITEM_ID: &str = "1250";
+    static OWNER_ID: &str = "-211982694";
+    static RESOURCE_LINK: &str = "asdfasdf";
+
 
     #[tokio::test]
     pub async fn make_like_task() {
@@ -76,8 +80,9 @@ pub mod vk {
             target: TaskTarget::Post,
             data: crate::tasks::like::LikeTargetData {
                 like_count: 1,
-                item_id: Some("1250".to_string()),
-                owner_id: Some("-211982694".to_string()),
+                item_id: Some(ITEM_ID.to_string()),
+                owner_id: Some(OWNER_ID.to_string()),
+                resource_link: Some(RESOURCE_LINK.to_string()),
                 ..Default::default()
             },
             ..Default::default()

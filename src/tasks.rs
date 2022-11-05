@@ -1,5 +1,6 @@
 use std::time::{SystemTime, Duration};
 
+use async_trait::async_trait;
 use bson::{Document, Uuid, doc};
 use log::{info, warn};
 use mongodb::{options::{FindOptions, FindOneOptions}, Collection};
@@ -154,8 +155,6 @@ pub struct BotTaskCreate {
     pub action: TaskActionEnum,
     #[serde(default)]
     pub social_source_id: Option<bson::Uuid>,
-    #[serde(default)]
-    pub extra: TaskExtra,
 }
 
 impl BotTaskCreate {
@@ -237,16 +236,21 @@ impl TaskActionEnum {
             _ => false,
         }
     }
+
+    pub async fn validate_assign_data(&mut self, platform: &SocialPlatform) -> Result<bool, TaskError> {
+        match self {
+            Self::LikeAction(a) => a.validate_assign_data(platform).await,
+            _ => Ok(true)
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct TaskExtra {
-    pub post: Option<SocialPost>
+pub struct ActionExtra {
+    pub post: Option<SocialPost>,
+    pub video: Option<SocialPost> // TODO
 }
-
-impl TaskExtra {
-    pub fn with_post(&mut self, v: SocialPost) -> &mut Self { self.post = Some(v); self }
-}
+impl ActionExtra { pub fn with_post(&mut self, v: SocialPost) -> &mut Self { self.post = Some(v); self } }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotTask {
@@ -263,8 +267,7 @@ pub struct BotTask {
     error: Option<TaskError>,
     pub action_type: TaskActionType,
     pub action: TaskActionEnum,
-    #[serde(default="TaskExtra::default")]
-    pub extra: TaskExtra,
+
     pub social_source: Option<SocialSource>,
 }
 
@@ -357,6 +360,14 @@ impl BotTask {
 
     async fn make_v2(&mut self, db: &SocialsDb) {
         info!("--- INVOKE MAKE TASK {} ---", self.id);
+        // validate action info
+        let action_valid = self.action.validate_assign_data(&self.platform).await;
+        if action_valid.is_err() {
+            self
+                .process_error(action_valid.unwrap_err())
+                .update_db(&db).await.unwrap();
+            return
+        };
         self.check_calc_next_time_run();
         let need_run = self.need_run();
         info!("Need run task: {}", need_run);
@@ -421,7 +432,6 @@ impl BotTask {
             action: t.action,
             options,
             social_source,
-            extra: t.extra
         }
     }
 }
@@ -432,11 +442,16 @@ impl DbActions for BotTask {
     fn get_id(&self) -> bson::Uuid { self.id }
 }
 
+#[async_trait]
 pub trait TaskAction {
 
+    async fn validate_assign_data(&mut self, _platform: &SocialPlatform) -> Result<bool, TaskError> {
+        warn!("Call bot sleep from TaskAction. Not implemented");
+        Ok(true)
+    }
     fn action_type(&self) -> TaskActionType;
     fn bot_assign_sleep(&self, _bot: &mut Bot, _sleep: Duration) {
-        warn!("Call bot sleep from TaskAction. Not implemented");
+        warn!("Call check_data_valid from trait. Not implemented");
     }
     fn bot_min_sleep(&self) -> Duration { Duration::from_secs(60) }
     fn bot_1hr_limit_sleep(&self) -> BotLimitSleep {

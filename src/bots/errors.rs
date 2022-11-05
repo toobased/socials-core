@@ -15,13 +15,13 @@ pub struct BotError {
 }
 
 impl BotError {
-    pub fn new(kind: BotErrorKind, msg: Option<String>, detailed: Option<String>) -> Self {
-        let msg = msg.unwrap_or("".to_string());
-        let detailed = detailed.unwrap_or("".to_string());
+    pub fn new(kind: BotErrorKind, msg: Option<&str>, detailed: Option<&str>) -> Self {
+        let msg = msg.unwrap_or("").to_string();
+        let detailed = detailed.unwrap_or("").to_string();
         Self { kind, msg, detail_msg: detailed }
     }
 
-    pub fn common(msg: Option<String>, detailed: Option<String>) -> Self {
+    pub fn common(msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Common,msg, detailed)
     }
 
@@ -29,20 +29,20 @@ impl BotError {
         if let BotErrorKind::Dummy = self.kind { return true } else { return false }
     }
     pub fn dummy () -> Self {
-        let msg = "Just dummy error here".to_string();
+        let msg = "Just dummy error here";
         Self::new(BotErrorKind::Dummy, Some(msg), None)
     }
 
-    pub fn auth (msg: Option<String>, detailed: Option<String>) -> Self {
+    pub fn auth (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Auth, msg, detailed)
     }
-    pub fn captcha (msg: Option<String>, detailed: Option<String>) -> Self {
+    pub fn captcha (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Access, msg, detailed)
     }
-    pub fn access_denied (msg: Option<String>, detailed: Option<String>) -> Self {
+    pub fn access_denied (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Access, msg, detailed)
     }
-    pub fn ban (msg: Option<String>, detailed: Option<String>) -> Self {
+    pub fn ban (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Ban, msg, detailed)
     }
 }
