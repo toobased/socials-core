@@ -3,7 +3,7 @@ use core::fmt;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum BotErrorKind { Dummy, Common, Auth, Access, Ban }
+pub enum BotErrorKind { Dummy, Common, Auth, Access, Ban, NotImplemented }
 
 impl Default for BotErrorKind { fn default () -> Self { Self::Dummy } }
 
@@ -44,6 +44,9 @@ impl BotError {
     }
     pub fn ban (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(BotErrorKind::Ban, msg, detailed)
+    }
+    pub fn not_implemented (msg: Option<&str>, detailed: Option<&str>) -> Self {
+        Self::new(BotErrorKind::NotImplemented, msg, detailed)
     }
 }
 

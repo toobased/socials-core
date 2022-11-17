@@ -1,53 +1,88 @@
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 use log::info;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{social::SocialPlatform, db::{SocialsDb, errors::DbError, DbActions}, tasks::{TaskAction, events::ActionEvent}, utils::pretty_duration};
+use crate::{
+    db::{errors::DbError, DbActions, SocialsDb},
+    social::{vk_core::VkCore, SocialPlatform},
+    tasks::{events::ActionEvent, TaskAction},
+    utils::pretty_duration,
+};
 
-use self::{query::BotQuery, errors::BotError};
+use self::{actions::SocialBotActions, errors::BotError, query::BotQuery};
 
 #[cfg(test)]
 pub mod tests;
 
 // local moduels
-pub mod query;
+pub mod actions;
 pub mod errors;
+pub mod query;
 
 #[derive(Debug, Clone, Default)]
-pub struct BotLimitSleep { pub limit: u64, pub sleep: Duration }
+pub struct BotLimitSleep {
+    pub limit: u64,
+    pub sleep: Duration,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum Gender { Male, Female, Unknown }
+pub enum Gender {
+    Male,
+    Female,
+    Unknown,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum BotStatus { Configure, Ready, Resting, InUse, Banned, ActionRequired, Error }
-impl Default for BotStatus { fn default() -> Self { Self::Configure } }
+pub enum BotStatus {
+    Configure,
+    Ready,
+    Resting,
+    InUse,
+    Banned,
+    ActionRequired,
+    Error,
+}
+impl Default for BotStatus {
+    fn default() -> Self {
+        Self::Configure
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BotPlatformData {
     pub refresh_token: Option<String>,
-    pub expires_in: Option<String>
+    pub expires_in: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct BotExtra { pub notes: Option<String> }
+pub struct BotExtra {
+    pub notes: Option<String>,
+}
 impl BotExtra {
-    fn init () -> Self { Self {..Default::default()} }
+    fn init() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
 }
 
 impl BotPlatformData {
-    fn init () -> Self { Self {..Default::default()} }
+    fn init() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default )]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BotActionsRest {
     pub like: Option<SystemTime>,
     pub repost: Option<SystemTime>,
     pub comment: Option<SystemTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default )]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BotCreate {
     pub social_id: Option<String>,
     pub username: String,
@@ -60,7 +95,7 @@ pub struct BotCreate {
     pub rest_until: Option<SystemTime>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default )]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct BotUpdate {
     pub social_id: Option<String>,
     pub username: String,
@@ -68,10 +103,10 @@ pub struct BotUpdate {
     pub access_token: Option<String>,
     pub platform: SocialPlatform,
     pub status: BotStatus,
-    pub gender: Option<Gender>
+    pub gender: Option<Gender>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone )]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Bot {
     pub id: bson::Uuid,
     pub social_id: Option<String>,
@@ -83,7 +118,7 @@ pub struct Bot {
     pub date_updated: SystemTime,
     pub last_used: Option<SystemTime>,
     pub rest_until: Option<SystemTime>,
-    #[serde(default="BotActionsRest::default")]
+    #[serde(default = "BotActionsRest::default")]
     pub actions_rest: BotActionsRest,
     // eof times
     pub platform: SocialPlatform,
@@ -92,76 +127,145 @@ pub struct Bot {
     pub platform_data: BotPlatformData,
     pub extra: BotExtra,
     pub error: Option<BotError>,
-    pub gender: Option<Gender>
+    pub gender: Option<Gender>,
 }
 
 impl Bot {
     // status helpers
-    pub fn is_ready (&self) -> bool { match self.status { BotStatus::Ready => true, _ => false }}
-    pub fn is_resting (&self) -> bool { match self.status { BotStatus::Ready => true, _ => false }}
-    pub fn is_banned(&self) -> bool { match self.status { BotStatus::Banned => true, _ => false }}
-    pub fn is_need_action(&self) -> bool { match self.status { BotStatus::ActionRequired => true, _ => false }}
-    pub fn is_in_use(&self) -> bool { match self.status { BotStatus::InUse => true, _ => false }}
-    pub fn is_error(&self) -> bool { match self.status { BotStatus::Error => true, _ => false }}
+    pub fn is_ready(&self) -> bool {
+        match self.status {
+            BotStatus::Ready => true,
+            _ => false,
+        }
+    }
+    pub fn is_resting(&self) -> bool {
+        match self.status {
+            BotStatus::Ready => true,
+            _ => false,
+        }
+    }
+    pub fn is_banned(&self) -> bool {
+        match self.status {
+            BotStatus::Banned => true,
+            _ => false,
+        }
+    }
+    pub fn is_need_action(&self) -> bool {
+        match self.status {
+            BotStatus::ActionRequired => true,
+            _ => false,
+        }
+    }
+    pub fn is_in_use(&self) -> bool {
+        match self.status {
+            BotStatus::InUse => true,
+            _ => false,
+        }
+    }
+    pub fn is_error(&self) -> bool {
+        match self.status {
+            BotStatus::Error => true,
+            _ => false,
+        }
+    }
 
-    pub fn set_status_error(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
-    pub fn set_status_banned(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
-    pub fn set_status_ready(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
-    pub fn set_status_in_use(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
-    pub fn set_status_action_required(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
+    pub fn set_status_error(&mut self) -> &mut Self {
+        self.status = BotStatus::Error;
+        self
+    }
+    pub fn set_status_banned(&mut self) -> &mut Self {
+        self.status = BotStatus::Error;
+        self
+    }
+    pub fn set_status_ready(&mut self) -> &mut Self {
+        self.status = BotStatus::Error;
+        self
+    }
+    pub fn set_status_in_use(&mut self) -> &mut Self {
+        self.status = BotStatus::Error;
+        self
+    }
+    pub fn set_status_action_required(&mut self) -> &mut Self {
+        self.status = BotStatus::Error;
+        self
+    }
     // eof status helpers
     //
     // sleep helpers
-    pub async fn after_action_sleep(&mut self, action: &impl TaskAction, db: &SocialsDb) -> &mut Self {
+    pub async fn after_action_sleep(
+        &mut self,
+        action: &impl TaskAction,
+        db: &SocialsDb,
+    ) -> &mut Self {
         // TODO fix items len to total
         // 24hr limit check
         let l24 = action.bot_24hr_limit_sleep();
-        let last_24hr: u64 = ActionEvent::get_bot_last_24hr_events(&self.id, db, Some(action.action_type()))
-            .await.unwrap().items.len().try_into().unwrap();
+        let last_24hr: u64 =
+            ActionEvent::get_bot_last_24hr_events(&self.id, db, Some(action.action_type()))
+                .await
+                .unwrap()
+                .items
+                .len()
+                .try_into()
+                .unwrap();
         if last_24hr >= l24.limit {
-            info!("[Bot 24hr limit sleep] {} reach 24hr limit: {}", self.id, l24.limit);
+            info!(
+                "[Bot 24hr limit sleep] {} reach 24hr limit: {}",
+                self.id, l24.limit
+            );
             action.bot_assign_sleep(self, l24.sleep);
-            return self
+            return self;
         }
 
         // 1hr limit check
-        let last_1hr: u64 = ActionEvent::get_bot_last_1hr_events(&self.id, db, Some(action.action_type()))
-            .await.unwrap().items.len().try_into().unwrap();
+        let last_1hr: u64 =
+            ActionEvent::get_bot_last_1hr_events(&self.id, db, Some(action.action_type()))
+                .await
+                .unwrap()
+                .items
+                .len()
+                .try_into()
+                .unwrap();
         let l1 = action.bot_1hr_limit_sleep();
         if last_1hr >= l1.limit {
-            info!("[Bot 1hr limit sleep] {} reach 1hr limit: {}", self.id, l1.limit);
+            info!(
+                "[Bot 1hr limit sleep] {} reach 1hr limit: {}",
+                self.id, l1.limit
+            );
             action.bot_assign_sleep(self, l1.sleep);
-            return self
+            return self;
         }
 
         // regular task sleep delay
         let regular_sleep = action.bot_min_sleep();
         info!(
             "[Bot regular sleep] Bot: {} . Sleep for {}. metrics: |{} in 1hr| |{} in 24hr|",
-            self.id, pretty_duration(regular_sleep), last_1hr, last_24hr
+            self.id,
+            pretty_duration(regular_sleep),
+            last_1hr,
+            last_24hr
         );
         action.bot_assign_sleep(self, regular_sleep);
-        return self
+        return self;
     }
     // eof sleep helpers
 
     // db helpers
-    pub async fn get_fresh(
-        &mut self,
-        db: &SocialsDb
-    ) -> Result<&mut Self, DbError> {
+    pub async fn get_fresh(&mut self, db: &SocialsDb) -> Result<&mut Self, DbError> {
         let q = BotQuery {
             id: Some(self.id),
             ..Default::default()
         };
-        match SocialsDb::find_one(&q, &db.bots())
-            .await {
-                Ok(r) => match r {
-                    Some(t) => { *self = t; Ok(self) }
-                    _ => Ok(self)
-                },
-                Err(e) => Err(e)
-            }
+        match SocialsDb::find_one(&q, &db.bots()).await {
+            Ok(r) => match r {
+                Some(t) => {
+                    *self = t;
+                    Ok(self)
+                }
+                _ => Ok(self),
+            },
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn update_db(
@@ -173,15 +277,19 @@ impl Bot {
     }
     // eof db helpers
     // error helpers
-     pub fn process_error(&mut self, e: BotError) -> &mut Self {
+    pub fn process_error(&mut self, e: BotError) -> &mut Self {
         // TODO special cases? 🤔
         info!("[Bot] {} processing error {:#?}", self.id, e);
         self.set_error(e).set_status_error()
     }
     pub fn set_error(&mut self, e: BotError) -> &mut Self {
-        self.error = Some(e); self
+        self.error = Some(e);
+        self
     }
-    pub fn clear_error(&mut self) -> &mut Self { self.error = None; self }
+    pub fn clear_error(&mut self) -> &mut Self {
+        self.error = None;
+        self
+    }
 
     pub fn update_with(&mut self, b: BotUpdate) -> &mut Self {
         self.social_id = b.social_id;
@@ -196,7 +304,7 @@ impl Bot {
     pub async fn create_from(_db: &SocialsDb, v: BotCreate) -> Result<Bot, String> {
         let status = match v.make_ready {
             true => BotStatus::Ready,
-            false => BotStatus::Configure
+            false => BotStatus::Configure,
         };
         let bot = Bot {
             id: bson::Uuid::new(),
@@ -215,14 +323,31 @@ impl Bot {
             platform_data: BotPlatformData::init(),
             extra: BotExtra::init(),
             error: None,
-            gender: v.gender
+            gender: v.gender,
         };
         Ok(bot)
+    }
+
+    pub async fn fetch_by_access_token(
+        platform: SocialPlatform,
+        token: &str,
+    ) -> Result<Bot, BotError> {
+        match platform {
+            SocialPlatform::Vk => VkCore::fetch_by_access_token(token).await,
+            _ => Err(BotError::not_implemented(
+                Some(&format!( "[NotImplemented] fetch_by_access_token for {:#?}", platform)),
+                None,
+            )),
+        }
     }
 }
 
 impl DbActions for Bot {
     type Query = BotQuery;
-    fn get_collection(&self,db: &SocialsDb) -> mongodb::Collection<Self> { db.bots() }
-    fn get_id(&self) -> bson::Uuid { self.id }
+    fn get_collection(&self, db: &SocialsDb) -> mongodb::Collection<Self> {
+        db.bots()
+    }
+    fn get_id(&self) -> bson::Uuid {
+        self.id
+    }
 }

@@ -14,6 +14,7 @@ use crate::{tasks::{like::LikeAction, BotTask, TaskAction}, db::SocialsDb};
 
 use super::{SocialCore, SocialCoreConfig};
 
+pub mod user;
 pub mod post;
 pub mod attachments;
 
