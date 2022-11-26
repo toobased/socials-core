@@ -136,6 +136,7 @@ impl Bot {
     pub fn is_resting(&self) -> bool { match self.status { BotStatus::Resting => true, _ => false, } }
     pub fn is_banned(&self) -> bool { match self.status { BotStatus::Banned => true, _ => false, } }
     pub fn is_need_action(&self) -> bool { match self.status { BotStatus::ActionRequired => true, _ => false, } }
+    pub fn is_configure(&self) -> bool { match self.status { BotStatus::Configure => true, _ => false, } }
     pub fn is_in_use(&self) -> bool { match self.status { BotStatus::InUse => true, _ => false, } }
     pub fn is_error(&self) -> bool { match self.status { BotStatus::Error => true, _ => false, } }
 
@@ -269,7 +270,7 @@ impl Bot {
     }
 
     pub fn default_checks(&mut self) -> &mut Self {
-        if self.is_error() || self.is_banned() || self.is_need_action() || self.is_in_use() { return self }
+        if self.is_error() || self.is_banned() || self.is_need_action() || self.is_in_use() || self.is_configure() { return self }
         self.check_global_sleep()
     }
 
