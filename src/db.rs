@@ -78,7 +78,7 @@ impl DbQuery for DummyQuery {}
 #[derive(Serialize)]
 pub struct DbFindResult<T> {
     pub items: Vec<T>,
-    pub total: u32
+    pub total: u64
 }
 
 #[derive(Clone)]
@@ -148,6 +148,7 @@ impl SocialsDb {
         T: DeserializeOwned + Unpin + Send + Sync,
         Q: DbQuery,
     {
+        let total = collection.count_documents(query.collect_filters(), None).await.unwrap_or(0);
         let items: Vec<T> = match collection
             .find(query.collect_filters(), query.collect_options())
             .await {
@@ -158,10 +159,7 @@ impl SocialsDb {
                 Err(_) => return Err(DbError::error_while_find())
             };
 
-        let res = DbFindResult {
-            items,
-            total: 12
-        };
+        let res = DbFindResult { items, total };
         Ok(res)
     }
 
