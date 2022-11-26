@@ -3,7 +3,7 @@ use log::info;
 use crate::{db::SocialsDb, bots::{query::BotQuery, BotCreate, Bot}, social::SocialPlatform};
 
 #[tokio::test]
-pub async fn test_tasks_crud() {
+pub async fn test_crud() {
     env_logger::try_init().ok();
     // test remove tasks
     remove_bots().await;
@@ -72,12 +72,12 @@ pub async fn find_bot () {
 
 pub async fn get_bots () {
     let db = SocialsDb::new_test_instance().await.unwrap();
-    let mut query = BotQuery::new();
-    query.is_ready();
+    let query = BotQuery::new();
+    // query.is_ready();
     let bots = SocialsDb::find(
         &query, &db.bots()
     ).await.unwrap();
-    info!("bots are {:#?}", bots.items);
+    info!("bots are {:#?} {}", bots.items, bots.total);
 }
 
 pub async fn get_bots_time () {
