@@ -132,63 +132,19 @@ pub struct Bot {
 
 impl Bot {
     // status helpers
-    pub fn is_ready(&self) -> bool {
-        match self.status {
-            BotStatus::Ready => true,
-            _ => false,
-        }
-    }
-    pub fn is_resting(&self) -> bool {
-        match self.status {
-            BotStatus::Ready => true,
-            _ => false,
-        }
-    }
-    pub fn is_banned(&self) -> bool {
-        match self.status {
-            BotStatus::Banned => true,
-            _ => false,
-        }
-    }
-    pub fn is_need_action(&self) -> bool {
-        match self.status {
-            BotStatus::ActionRequired => true,
-            _ => false,
-        }
-    }
-    pub fn is_in_use(&self) -> bool {
-        match self.status {
-            BotStatus::InUse => true,
-            _ => false,
-        }
-    }
-    pub fn is_error(&self) -> bool {
-        match self.status {
-            BotStatus::Error => true,
-            _ => false,
-        }
-    }
+    pub fn is_ready(&self) -> bool { match self.status { BotStatus::Ready => true, _ => false, } }
+    pub fn is_resting(&self) -> bool { match self.status { BotStatus::Resting => true, _ => false, } }
+    pub fn is_banned(&self) -> bool { match self.status { BotStatus::Banned => true, _ => false, } }
+    pub fn is_need_action(&self) -> bool { match self.status { BotStatus::ActionRequired => true, _ => false, } }
+    pub fn is_in_use(&self) -> bool { match self.status { BotStatus::InUse => true, _ => false, } }
+    pub fn is_error(&self) -> bool { match self.status { BotStatus::Error => true, _ => false, } }
 
-    pub fn set_status_error(&mut self) -> &mut Self {
-        self.status = BotStatus::Error;
-        self
-    }
-    pub fn set_status_banned(&mut self) -> &mut Self {
-        self.status = BotStatus::Error;
-        self
-    }
-    pub fn set_status_ready(&mut self) -> &mut Self {
-        self.status = BotStatus::Error;
-        self
-    }
-    pub fn set_status_in_use(&mut self) -> &mut Self {
-        self.status = BotStatus::Error;
-        self
-    }
-    pub fn set_status_action_required(&mut self) -> &mut Self {
-        self.status = BotStatus::Error;
-        self
-    }
+    pub fn set_status_error(&mut self) -> &mut Self { self.status = BotStatus::Error; self }
+    pub fn set_status_banned(&mut self) -> &mut Self { self.status = BotStatus::Banned; self }
+    pub fn set_status_ready(&mut self) -> &mut Self { self.status = BotStatus::Ready; self }
+    pub fn set_status_resting(&mut self) -> &mut Self { self.status = BotStatus::Resting; self }
+    pub fn set_status_in_use(&mut self) -> &mut Self { self.status = BotStatus::InUse; self }
+    pub fn set_status_action_required(&mut self) -> &mut Self { self.status = BotStatus::ActionRequired; self }
     // eof status helpers
     //
     // sleep helpers
@@ -298,7 +254,23 @@ impl Bot {
         self.access_token = b.access_token;
         self.platform = b.platform;
         self.status = b.status;
+        self.default_checks();
         self
+    }
+
+    pub fn check_global_sleep(&mut self) -> &mut Self {
+        match &self.rest_until {
+            None => if self.is_resting() { self.set_status_ready() } else { self },
+            Some(v) => match SystemTime::now().ge(v) {
+                true => { self.rest_until = None; self.set_status_error() },
+                false => { self.set_status_resting() }
+            }
+        }
+    }
+
+    pub fn default_checks(&mut self) -> &mut Self {
+        if self.is_error() || self.is_banned() || self.is_need_action() || self.is_in_use() { return self }
+        self.check_global_sleep()
     }
 
     pub async fn create_from(_db: &SocialsDb, v: BotCreate) -> Result<Bot, String> {
@@ -306,7 +278,7 @@ impl Bot {
             true => BotStatus::Ready,
             false => BotStatus::Configure,
         };
-        let bot = Bot {
+        let mut bot = Bot {
             id: bson::Uuid::new(),
             social_id: v.social_id,
             username: v.username,
@@ -325,6 +297,7 @@ impl Bot {
             error: None,
             gender: v.gender,
         };
+        bot.default_checks();
         Ok(bot)
     }
 
