@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
-use crate::{bots::BotLimitSleep, utils::pretty_duration, social::{SocialPlatform, post::SocialPost}};
+use crate::{bots::BotLimitSleep, utils::pretty_duration, social::{SocialPlatform, vk_core::VkCore}};
 
 use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType, errors::TaskError, ActionExtra};
 
@@ -18,7 +18,7 @@ pub struct LikeTargetData {
     pub like_count: i32,
     pub like_random_threshold: i32,
     /// for bulk like account / group
-    last_items_check_count: i32,
+    pub last_items_check_count: i32,
     pub owner_id: Option<String>,
     pub item_id: Option<String>,
     pub resource_link: Option<String>,
@@ -77,18 +77,11 @@ impl LikeAction {
 impl TaskAction for LikeAction {
 
     async fn validate_assign_data(&mut self, platform: &SocialPlatform) -> Result<bool, TaskError> {
-        if self.data.owner_id.is_some() && self.data.item_id.is_some() { return Ok(true) }
-        match &self.data.resource_link {
-            None => Err(TaskError::invalid_data(Some("No target data. No resource link"))),
-            Some(v) => match SocialPost::get_post_by_url(platform, v).await {
-                Ok(d) => {
-                    self.data.owner_id = d.owner_id;
-                    self.data.item_id = d.post_id;
-                    Ok(true)
-                }
-                Err(e) => Err(e.into())
-            }
+        match platform {
+            SocialPlatform::Vk => VkCore::validate_like_data(self).await,
+            _ => Ok(true)
         }
+        // TODO check if post already present in task, get data from it
     }
 
     fn bot_assign_sleep(&self, bot: &mut crate::bots::Bot, sleep: Duration) {

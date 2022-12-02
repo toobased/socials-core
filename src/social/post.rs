@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::info;
 use serde::{Serialize, Deserialize};
 
 use super::{attachments::SocialAttachmentType, SocialPlatform, vk_core::VkCore, errors::SocialError};
@@ -51,6 +52,7 @@ impl SocialPost {
     }
     pub async fn get_post_by_url(p: &SocialPlatform, url: &str)
         -> Result<SocialPost, SocialError> {
+        info!("[SocialPost] invoke `get_post_by_url` with {}", url);
         match p {
             SocialPlatform::Vk => VkCore::new().get_post_by_url(url).await,
             _ => Err(SocialError::not_implemented(Some("get_post_by_url not implemented")))

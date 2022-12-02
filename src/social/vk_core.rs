@@ -12,6 +12,7 @@ use crate::tasks::errors::TaskError;
 use crate::tasks::events::ActionEvent;
 use crate::{tasks::{like::LikeAction, BotTask, TaskAction}, db::SocialsDb};
 
+use super::post::SocialPost;
 use super::{SocialCore, SocialCoreConfig};
 
 pub mod user;
@@ -69,6 +70,31 @@ impl VkCore {
         };
         VkCoreParsedError::Task(task_err)
     }
+
+    pub async fn validate_like_data (action: &mut LikeAction) -> Result<bool, TaskError> {
+        let l = "[VkCore] `validate_like_data`";
+        if action.data.owner_id.is_some() && action.data.item_id.is_some() {
+            if action.data.owner_id.clone().unwrap().len() > 0 && action.data.item_id.clone().unwrap().len() > 0 {
+                info!("{} all data good", l);
+                return Ok(true)
+            }
+        }
+        info!(
+            "{} no `owner_id` or `item_id`, looking at `resource_link`, |{:#?} {:#?} {:#?}|",
+            l, &action.data.owner_id, &action.data.item_id, &action.data.resource_link
+        );
+        match &action.data.resource_link {
+            None => Err(TaskError::invalid_data(Some("No target data. No resource link"))),
+            Some(v) => match SocialPost::get_post_by_url(&SocialPlatform::Vk, v).await {
+                Ok(d) => {
+                    action.data.owner_id = d.owner_id;
+                    action.data.item_id = d.post_id;
+                    Ok(true)
+                }
+                Err(e) => Err(e.into())
+            }
+        }
+    }
 }
 
 impl Default for VkCore {
@@ -87,6 +113,7 @@ impl SocialCore for VkCore {
     fn info(&self) -> String { "VkCore".to_string() }
 
     async fn like(&self, action: LikeAction, task: &mut BotTask, db: &SocialsDb) {
+        info!("[VkCore] invoke `like` for {}", &task.id);
         let need_do = action.calc_need_do_now(task);
         let owner_id = action.data.owner_id.unwrap_or("".to_string()); // TODO
         let item_id = action.data.item_id.unwrap_or("".to_string()); // TODO
@@ -156,8 +183,14 @@ impl SocialCore for VkCore {
                         item_id: item_id.clone(),
                         ..Default::default()
                     };
-                    let result = likes::add(&client, query).await;
-
+                    // make like action
+                    let result = match task.is_testing() {
+                        false => likes::add(&client, query).await,
+                        true => {
+                            info!("[TESTING Like action] just simulating like action");
+                            Ok(vk_client::likes::response::AddLikeResponse { likes: 1 })
+                        }
+                    };
                     match result {
                         Err(vk_err) => {
                             match VkCore::parse_error(&vk_err) {
@@ -204,4 +237,8 @@ impl SocialCore for VkCore {
             }
         }
     }
+
+
 }
+
+

@@ -278,6 +278,9 @@ impl BotTask {
     pub fn set_status_error(&mut self) -> &mut Self { self.status = BotTaskStatus::Error; self }
     pub fn set_status_finished(&mut self) -> &mut Self { self.status = BotTaskStatus::Finished; self }
 
+    pub fn is_testing (&self) -> bool { return self.options.is_testing }
+    pub fn is_error(&self) -> bool { match self.error { Some(_) => true, None => false, } }
+
     pub fn sleep_no_bots(&mut self, sleep: Option<Duration>) -> &mut Self {
         let now = SystemTime::now();
         let sleep = sleep.unwrap_or(Duration::from_secs(300));
@@ -357,6 +360,7 @@ impl BotTask {
 
     async fn make_v2(&mut self, db: &SocialsDb) {
         info!("--- INVOKE MAKE TASK {} ---", self.id);
+        if self.check_done() { self.update_db(&db).await.unwrap(); return };
         // validate action info
         let action_valid = self.action.validate_assign_data(&self.platform).await;
         if action_valid.is_err() {
@@ -385,6 +389,7 @@ impl BotTask {
             SocialPlatform::Dzen => dzen_core.make_action(self, db).await,
             _ => info!("{:#?} not implemented yet", self.platform),
         }
+        if self.check_done() { self.update_db(&db).await.unwrap(); return };
     }
 
     pub async fn make(&mut self, db: &SocialsDb) { self.make_v2(db).await; }
@@ -398,7 +403,6 @@ impl BotTask {
         }
     }
     pub fn calc_next_time_run(&mut self) { TaskActionEnum::calc_next_time_run(self) }
-    pub fn has_error(&self) -> bool { match self.error { Some(_) => true, None => false, } }
 
     // TODO convert into result?
     pub async fn create_from(db: &SocialsDb, t: BotTaskCreate) -> BotTask {
@@ -460,7 +464,7 @@ pub trait TaskAction {
     fn target(&self) -> TaskTarget;
     fn do_stuff(&self) { println!("some stuff there") }
     fn need_run(&self, task: &mut BotTask) -> bool {
-        if task.has_error() { return false; }
+        if task.is_error() { return false; }
         let time_now = SystemTime::now();
         let next_run_time = task.next_run_time;
         match next_run_time {

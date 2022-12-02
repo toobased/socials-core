@@ -110,7 +110,7 @@ pub trait SocialCore {
             }
         }
 
-        if !task.has_error() {
+        if !task.is_error() {
             task.get_fresh(&db).await.unwrap();
             // TODO fix cloning
             let fresh_action = task.action.clone();
