@@ -12,7 +12,7 @@ use crate::{
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
         yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost,
-    }, bots::{BotLimitSleep, Bot}, utils::{mdb_cond_or_null, unix_now_secs_f64},
+    }, bots::{BotLimitSleep, Bot}, utils::mdb_cond_time,
 };
 
 use self::{errors::TaskError, like::LikeAction, watch::WatchAction};
@@ -112,11 +112,8 @@ impl DbQuery for BotTaskQuery {
         }
 
         if let Some(_i) = &self.not_sleep {
-            let key: &str = "next_run_time.secs_since_epoch";
-            mdb_cond_or_null(
-                &mut f, key,
-                doc! { "$lte": unix_now_secs_f64() }
-            );
+            let key: &str = "next_run_time";
+            mdb_cond_time(&mut f, key, "$lte", SystemTime::now(), true)
         }
         f
     }

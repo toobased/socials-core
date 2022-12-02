@@ -103,5 +103,3 @@ pub mod vk {
         SocialsDb::insert_one(task, db.bots_tasks()).await.unwrap();
     }
 }
-
-

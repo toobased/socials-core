@@ -94,7 +94,7 @@ impl SocialCore for VkCore {
         // getting bots for task
         let mut bots_query = BotQuery::new();
         bots_query
-            .is_ready()
+            .is_ready_or_awake()
             .is_awake_for(TaskActionType::Like)
             .has_token()
             .top_old_used()

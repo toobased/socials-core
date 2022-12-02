@@ -1,10 +1,12 @@
+use std::time::SystemTime;
+
 use bson::{Document, doc};
 use mongodb::options::{FindOptions, FindOneOptions};
 use serde::{Serialize, Deserialize};
 
 use serde_json::to_value;
 
-use crate::{social::SocialPlatform, db::DbQuery, tasks::TaskActionType, utils::{mdb_cond_or_null, unix_now_secs_f64}};
+use crate::{social::SocialPlatform, db::DbQuery, tasks::TaskActionType, utils::{mdb_cond_in, mdb_cond_time, mdb_and}};
 
 use super::BotStatus;
 
@@ -20,7 +22,8 @@ pub struct BotQuery {
     pub skip: Option<u64>,
     pub limit: Option<i64>,
     pub exclude_ids: Option<Vec<bson::Uuid>>,
-    pub awake_for_action: Option<TaskActionType>
+    pub awake_for_action: Option<TaskActionType>,
+    pub ready_or_awake: bool
 }
 
 impl BotQuery {
@@ -28,6 +31,7 @@ impl BotQuery {
 
     pub fn is_ready(&mut self) -> &mut Self { self.status = Some(BotStatus::Ready); self }
     pub fn is_awake_for(&mut self, v: TaskActionType) -> &mut Self { self.awake_for_action = Some(v); self }
+    pub fn is_ready_or_awake(&mut self) -> &mut Self { self.ready_or_awake = true; self }
 
     pub fn with_platform(&mut self, p: SocialPlatform) -> &mut Self { self.platform = Some(p); self }
 
@@ -64,17 +68,28 @@ impl DbQuery for BotQuery {
                 "$nin": v
             });
         }
+
+        // TODO improve
+        let mut and_c: Vec<Document> = Vec::new();
+
         if let Some(v) = &self.awake_for_action {
             let key = match v {
-                TaskActionType::Like => "actions_rest.like.secs_since_epoch",
+                TaskActionType::Like => "actions_rest.like",
                 _ => ""
             };
 
-            mdb_cond_or_null(
-                &mut f, key,
-                doc! { "$lte": unix_now_secs_f64() }
-            );
+            let mut c = Document::new();
+            mdb_cond_time(&mut c, key, "$lte", SystemTime::now(), true);
+            and_c.push(c);
         }
+
+        if self.ready_or_awake {
+            mdb_cond_in(&mut f, "status", vec![BotStatus::Ready.to_string(), BotStatus::Resting.to_string()]);
+            let mut c = Document::new();
+            mdb_cond_time(&mut c, "rest_until", "$lte", SystemTime::now(), true);
+            and_c.push(c);
+        }
+        if and_c.len() > 0 { mdb_and(&mut f, and_c); }
         f
     }
     fn collect_sorting(&self) -> Document {

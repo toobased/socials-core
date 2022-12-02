@@ -43,9 +43,18 @@ pub enum BotStatus {
     ActionRequired,
     Error,
 }
-impl Default for BotStatus {
-    fn default() -> Self {
-        Self::Configure
+impl Default for BotStatus { fn default() -> Self { Self::Configure } }
+impl ToString for BotStatus {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Configure => "Configure".to_string(),
+            Self::Ready=> "Ready".to_string(),
+            Self::Resting=> "Resting".to_string(),
+            Self::InUse=> "InUse".to_string(),
+            Self::Banned=> "Banned".to_string(),
+            Self::ActionRequired=> "ActionRequired".to_string(),
+            Self::Error=> "Error".to_string(),
+        }
     }
 }
 
@@ -146,6 +155,10 @@ impl Bot {
     pub fn set_status_resting(&mut self) -> &mut Self { self.status = BotStatus::Resting; self }
     pub fn set_status_in_use(&mut self) -> &mut Self { self.status = BotStatus::InUse; self }
     pub fn set_status_action_required(&mut self) -> &mut Self { self.status = BotStatus::ActionRequired; self }
+
+    pub fn set_sleep_until(&mut self, v: SystemTime) -> &mut Self { self.rest_until = Some(v); self }
+
+    pub fn clear_sleep_until(&mut self) -> &mut Self { self.rest_until = None; self }
     // eof status helpers
     //
     // sleep helpers
