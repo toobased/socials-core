@@ -276,7 +276,7 @@ impl Bot {
         match &self.rest_until {
             None => if self.is_resting() { self.set_status_ready() } else { self },
             Some(v) => match SystemTime::now().ge(v) {
-                true => { self.rest_until = None; self.set_status_error() },
+                true => { self.rest_until = None; self.set_status_ready() },
                 false => { self.set_status_resting() }
             }
         }

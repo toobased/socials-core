@@ -2,12 +2,14 @@ use std::time::{SystemTime, Duration};
 
 use log::info;
 
-use crate::{db::SocialsDb, bots::{query::BotQuery, BotCreate, Bot}, social::SocialPlatform};
+use crate::{db::{SocialsDb, DbActions}, bots::{query::BotQuery, BotCreate, Bot, BotStatus, BotUpdate}, social::SocialPlatform};
 
 #[tokio::test]
 pub async fn test_crud() {
     env_logger::try_init().ok();
     let db = SocialsDb::new_test_instance().await.unwrap();
+    // stadard bot creation & configure
+    create_bot_configure(&db).await;
     // test remove tasks
     remove_bots(&db).await;
     // add bot
@@ -24,6 +26,9 @@ pub async fn test_crud() {
     add_bots_fields(&db, 1).await;
     // get bots exist fields
     get_bots_fields(&db, true).await;
+
+    // test remove tasks
+    remove_bots(&db).await;
 }
 
 pub async fn remove_bots(db: &SocialsDb) {
@@ -95,10 +100,10 @@ pub async fn find_bot (db: &SocialsDb) {
 pub async fn get_bots (db: &SocialsDb) {
     let query = BotQuery::new();
     // query.is_ready();
-    let bots = SocialsDb::find(
+    let _bots = SocialsDb::find(
         &query, &db.bots()
     ).await.unwrap();
-    info!("bots are {:#?} {}", bots.items, bots.total);
+    // info!("bots are {:#?} {}", bots.items, bots.total);
 }
 
 pub async fn get_bots_time (db: &SocialsDb) {
@@ -123,4 +128,22 @@ pub async fn get_bots_fields (db: &SocialsDb, condition: bool) {
     // info!("bots are {:#?}", bots.items);
     let check = bots.items.len() > 0;
     assert!(check == condition)
+}
+
+pub async fn create_bot_configure(db: &SocialsDb) {
+    let new_bot = BotCreate {
+        rest_until: Some(SystemTime::now().checked_sub(Duration::from_secs(2)).unwrap()),
+        ..Default::default()
+    };
+    let mut bot = Bot::create_from(db, new_bot).await.unwrap();
+    bot.insert_db(db).await.unwrap();
+    // ensure bot is in configure status
+    assert_eq!(bot.is_configure(), true);
+    let upd = BotUpdate {
+        status: BotStatus::Ready,
+        ..Default::default()
+    };
+    bot.update_with(upd).update_db(db).await.unwrap();
+    info!("-- Ensure bot is ready status --");
+    assert_eq!(bot.is_ready(), true)
 }
