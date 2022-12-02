@@ -113,6 +113,7 @@ pub struct BotUpdate {
     pub platform: SocialPlatform,
     pub status: BotStatus,
     pub gender: Option<Gender>,
+    pub rest_until: Option<SystemTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -268,6 +269,7 @@ impl Bot {
         self.access_token = b.access_token;
         self.platform = b.platform;
         self.status = b.status;
+        self.rest_until = b.rest_until;
         self.default_checks();
         self
     }
