@@ -15,10 +15,10 @@ pub mod tests;
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LikeTargetData {
-    pub like_count: i32,
-    pub like_random_threshold: i32,
+    pub like_count: u64,
+    pub like_random_threshold: u64,
     /// for bulk like account / group
-    pub last_items_check_count: i32,
+    pub last_items_check_count: u64,
     pub owner_id: Option<String>,
     pub item_id: Option<String>,
     pub resource_link: Option<String>,
@@ -33,13 +33,15 @@ impl LikeTargetData {
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LikeStats {
-    pub like_count: i32,
+    pub like_count: u64,
     pub processed_posts_ids: Vec<String>,
     #[serde(default="Vec::default")]
     pub bots_used: Vec<bson::Uuid>
 }
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct LikeSettings {
+    pub testing_check_liked: bool,
+    pub testing_add_used: bool
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -71,6 +73,9 @@ impl LikeAction {
         debug!("add {} to used", bot_id);
         self.stats.bots_used.push(bot_id.clone()); self
     }
+
+    pub fn is_testing_check_liked (&self) -> bool { return self.settings.testing_check_liked }
+    pub fn is_testing_add_used (&self) -> bool { return self.settings.testing_add_used }
 }
 
 #[async_trait]
@@ -99,7 +104,7 @@ impl TaskAction for LikeAction {
     }
     fn bot_1hr_limit_sleep(&self) -> BotLimitSleep {
         // 1hr sleep
-        BotLimitSleep { limit: 7, sleep: Duration::from_secs(3600) }
+        BotLimitSleep { limit: 4, sleep: Duration::from_secs(3600) }
     }
     fn bot_24hr_limit_sleep(&self) -> BotLimitSleep {
         // 5hrs sleep
@@ -131,7 +136,30 @@ impl TaskAction for LikeAction {
             time_passed, time_spread, time_need, time_left, time_ratio, appender);
     }
 
-    fn calc_need_do_now(&self, _task: &BotTask) -> u64 { 10 }
+    fn calc_need_do_now(&self, task: &BotTask) -> u64 {
+        debug!("Invoke `calc_need_do_now` {}: {:#?}", task.title, self.data);
+        // let max = self.settings.max_watch_spawn;
+        let now = SystemTime::now();
+        let created = task.date_created;
+        let time_spread = self.data.time_spread;
+        let need_make = self.data.like_count - self.stats.like_count;
+        let action_process_time = 5;
+        let time_need = action_process_time * need_make;
+
+        let time_passed = now.duration_since(created).unwrap().as_secs();
+        let time_left = {
+            match time_spread > time_passed {
+                true => time_spread - time_passed,
+                false => 0
+            }
+        };
+        let need_do: u64 = match time_left > 0 {
+            true => time_need / time_left,
+            false => need_make
+        };
+        info!("Need do now: {}", need_do);
+        need_do
+    }
 
     fn check_done(&self, task: &mut BotTask) -> bool {
         let done = self.stats.like_count >= self.data.like_count;

@@ -1,7 +1,7 @@
 pub mod vk {
     use log::info;
 
-    use crate::{db::SocialsDb, tasks::BotTaskQuery, social::SocialPlatform, tests::db_helpers::{clean_tasks_db, clean_bots_db, clean_events_db, insert_test_bot, insert_like_task}};
+    use crate::{db::SocialsDb, tasks::{BotTaskQuery, like::LikeAction}, social::SocialPlatform, tests::db_helpers::{clean_tasks_db, clean_bots_db, clean_events_db, insert_test_bot, insert_like_task}};
 
     static ITEM_ID: &str = "";
     static OWNER_ID: &str = "";
@@ -14,12 +14,13 @@ pub mod vk {
     pub async fn test_like () {
         info!("-- VK TEST LIKE --");
         let db = SocialsDb::new_test_instance().await.unwrap();
-        make_like_task(&db, RESOURCE_LINK_FAIL, 1, true, false).await;
+        make_like_task(&db, RESOURCE_LINK_FAIL, 5, true, false).await;
         make_like_task(&db, RESOURCE_LINK_SUCESS, 1, false, true).await;
+        make_like_task(&db, RESOURCE_LINK_SUCESS, 5, false, false).await;
     }
 
     pub async fn make_like_task(
-        db: &SocialsDb, resource_link: &str, count: i32,
+        db: &SocialsDb, resource_link: &str, count: u64,
         should_fail: bool, should_finish: bool
     ) {
         let token: String = std::env::var("vk_test_access_token").unwrap();
@@ -33,7 +34,7 @@ pub mod vk {
         clean_events_db(&db).await;
 
         // inserting data
-        insert_test_bot(&db, &token, &PLATFORM).await;
+        for _i in 0..10 { insert_test_bot(&db, &token, &PLATFORM).await; }
         // insert tasks
         for _i in 0..1 { insert_like_task(&db, ITEM_ID, OWNER_ID, resource_link, &PLATFORM, count).await; }
         // making task
@@ -55,6 +56,11 @@ pub mod vk {
         let task = SocialsDb::find_one(&q, &db.bots_tasks()).await.unwrap().unwrap();
         if should_fail { assert_eq!(task.is_error(), true) }
         if should_finish { assert_eq!(task.is_done(), true)}
+        if !should_fail {
+            // ensure that specified `count` = actual taks metrics
+            let action: LikeAction = task.action.try_into().unwrap();
+            assert_eq!(action.stats.like_count == count, true);
+        };
     }
 
 }

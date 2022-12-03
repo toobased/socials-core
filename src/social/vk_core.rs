@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use log::info;
 use vk_client::client::VkClient;
+use vk_client::likes::response::IsLikedResponse;
 use vk_client::{likes, media, client::response::VkError};
 
 use crate::bots::errors::BotError;
@@ -115,8 +116,8 @@ impl SocialCore for VkCore {
     async fn like(&self, action: LikeAction, task: &mut BotTask, db: &SocialsDb) {
         info!("[VkCore] invoke `like` for {}", &task.id);
         let need_do = action.calc_need_do_now(task);
-        let owner_id = action.data.owner_id.unwrap_or("".to_string()); // TODO
-        let item_id = action.data.item_id.unwrap_or("".to_string()); // TODO
+        let owner_id = action.data.owner_id.clone().unwrap_or("".to_string()); // TODO
+        let item_id = action.data.item_id.clone().unwrap_or("".to_string()); // TODO
 
         // getting bots for task
         let mut bots_query = BotQuery::new();
@@ -126,7 +127,7 @@ impl SocialCore for VkCore {
             .has_token()
             .top_old_used()
             .with_platform(SocialPlatform::Vk)
-            .exclude_ids(action.stats.bots_used)
+            .exclude_ids(action.stats.bots_used.clone())
             .limit(i64::try_from(need_do).unwrap());
         let mut bots = SocialsDb::find(&bots_query, &db.bots())
             .await.unwrap();
@@ -140,6 +141,10 @@ impl SocialCore for VkCore {
         }
 
         for bot in bots.items.iter_mut() {
+            if task.check_done() {
+                task.update_db(db).await.unwrap();
+                break;
+            };
             let bot_token = bot.access_token.as_ref().unwrap(); // TODO
             let client = VkCore::make_client(&bot_token);
             let query = likes::query::IsLikedQuery {
@@ -148,7 +153,13 @@ impl SocialCore for VkCore {
                 item_id: item_id.clone(),
                 ..Default::default()
             };
-            let result = likes::is_liked(&client, query).await;
+            let result = {
+                if task.is_testing() && !action.is_testing_check_liked() {
+                    Ok(IsLikedResponse { liked: 0, copied: 0 })
+                } else {
+                    likes::is_liked(&client, query).await
+                }
+            };
             match result {
                 Err(vk_err) => {
                     match VkCore::parse_error(&vk_err) {
@@ -172,7 +183,11 @@ impl SocialCore for VkCore {
                         task.get_fresh(&db).await.unwrap();
                         let mut action: LikeAction = task.action.clone()
                             .try_into().ok().unwrap();
-                        action.add_used_bot(&bot.id);
+
+                        if task.is_testing() && !action.is_testing_add_used() {
+                            info!("[⚠️ VK Like Task] Skip adding bot to used")
+                        } else { action.add_used_bot(&bot.id); }
+
                         task.action = TaskActionEnum::LikeAction(action);
                         task.update_db(&db).await.unwrap();
                         continue
@@ -214,7 +229,11 @@ impl SocialCore for VkCore {
                             let mut action: LikeAction = task.action.clone()
                                 .try_into().ok().unwrap(); // TODO handle error
                             action.stats.like_count += 1;
-                            action.add_used_bot(&bot.id);
+
+                            if task.is_testing() && !action.is_testing_add_used() {
+                                info!("[⚠️ VK Like Task] Skip adding bot to used")
+                            } else { action.add_used_bot(&bot.id); }
+
                             task.action = TaskActionEnum::LikeAction(action.clone());
                             task.update_db(db).await.unwrap(); // TODO
                             // adding event action
@@ -237,7 +256,6 @@ impl SocialCore for VkCore {
             }
         }
     }
-
 
 }
 

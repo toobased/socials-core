@@ -22,7 +22,7 @@ pub async fn clean_events_db (db: &SocialsDb) {
 pub async fn insert_like_task(
     db: &SocialsDb,
     item_id: &str, owner_id: &str, resource_link: &str, platform: &SocialPlatform,
-    count: i32
+    count: u64
 ) {
     info!("[{}] invoke `insert_like_task` for {:#?}", LB, platform);
     let action = crate::tasks::like::LikeAction {
