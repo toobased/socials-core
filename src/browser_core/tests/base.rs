@@ -8,9 +8,9 @@ use crate::browser_core::BrowserCore;
 pub async fn test_browser_processes ()  {
     env_logger::init();
     info!("Run test browser processes");
-    // test_zombie().await;
+    test_zombie().await;
     // test_driver_max_spawn_sys_env();
-    // test_driver_max_spawn();
+    test_driver_max_spawn();
     test_driver_init_close().await;
 }
 

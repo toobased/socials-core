@@ -1,3 +1,5 @@
+pub mod calc;
+
 pub mod vk {
     use log::info;
 

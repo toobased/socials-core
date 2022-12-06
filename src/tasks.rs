@@ -437,6 +437,33 @@ impl BotTask {
     }
 }
 
+impl From<BotTaskCreate> for BotTask {
+    fn from(t: BotTaskCreate) -> Self {
+        // TODO social source handling?
+        let options = BotTaskOptions {
+            is_testing: t.is_testing,
+            is_browser: t.action_type.is_default_browser(&t.platform),
+            ..Default::default()
+        };
+        BotTask {
+            id: Uuid::new(),
+            is_active: t.is_active,
+            // is_locked: false,
+            status: BotTaskStatus::default(),
+            date_created: SystemTime::now(),
+            date_updated: SystemTime::now(),
+            title: t.title,
+            platform: t.platform,
+            next_run_time: None,
+            error: None,
+            action_type: t.action_type,
+            action: t.action,
+            options,
+            social_source: None,
+        }
+    }
+}
+
 impl DbActions for BotTask {
     type Query = BotTaskQuery;
     fn get_collection(&self,db: &SocialsDb) -> Collection<Self> { db.bots_tasks() }

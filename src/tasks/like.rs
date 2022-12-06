@@ -113,52 +113,68 @@ impl TaskAction for LikeAction {
 
     fn calc_next_time_run(&self, task: &mut BotTask) {
         debug!("Invoke `calc_next_time_run` {}: {:#?}", task.title, self.data);
-        self.check_done(task);
-        if task.is_done() { return };
-        let now = SystemTime::now();
-        let created = task.date_created;
+        let time_now = SystemTime::now();
+        let date_created = task.date_created;
         let time_spread = self.data.time_spread;
+        if self.stats.like_count.gt(&self.data.like_count) { 
+            task.next_run_time = None;
+            task.set_done();
+            return
+        }
         let need_make = self.data.like_count - self.stats.like_count;
-        let time_passed = now.duration_since(created).unwrap().as_secs();
-        let time_need = u64::try_from(1 * need_make).unwrap();
-
-        let time_left = {
-            match time_spread > time_passed {
-                true => time_spread - time_passed,
-                false => 0
-            }
+        if need_make.eq(&0) {
+            task.next_run_time = None;
+            task.set_done();
+            return
+        }
+        let secs_elapsed = time_now.duration_since(date_created).unwrap().as_secs();
+        let secs_left = match secs_elapsed > time_spread {
+            true => 0,
+            false => time_spread - secs_elapsed
         };
-        let time_ratio: u64 = time_left / time_need;
-        let appender = time_ratio;
-        // update task next_time_run
-        task.next_run_time = SystemTime::now().checked_add(Duration::from_secs(appender));
-        info!("{}s since created, spread: {}s, need: {}s, left: {}s, ratio: {}, next run in: {}s",
-            time_passed, time_spread, time_need, time_left, time_ratio, appender);
+        // let max_make_per_step = 5; // TODO move to config
+        // let min_sleep_step = 10;
+        // let max_make = std::cmp::min(need_make, max_make_per_step);
+        let mut sleep_step = match secs_left.eq(&0) {
+            true => 1,
+            false => secs_left / need_make
+        };
+        if sleep_step.lt(&0) { sleep_step = 1; }
+        task.next_run_time = SystemTime::now().checked_add(Duration::from_secs(sleep_step));
     }
 
     fn calc_need_do_now(&self, task: &BotTask) -> u64 {
         debug!("Invoke `calc_need_do_now` {}: {:#?}", task.title, self.data);
-        // let max = self.settings.max_watch_spawn;
-        let now = SystemTime::now();
-        let created = task.date_created;
+        let time_now = SystemTime::now();
+        let date_created = task.date_created;
         let time_spread = self.data.time_spread;
+        if self.stats.like_count.gt(&self.data.like_count) { return 0 }
         let need_make = self.data.like_count - self.stats.like_count;
-        let action_process_time = 5;
-        let time_need = action_process_time * need_make;
-
-        let time_passed = now.duration_since(created).unwrap().as_secs();
-        let time_left = {
-            match time_spread > time_passed {
-                true => time_spread - time_passed,
-                false => 0
+        if need_make.eq(&0) { return 0 }
+        let secs_elapsed = time_now.duration_since(date_created).unwrap().as_secs();
+        let secs_left = match secs_elapsed > time_spread {
+            true => 0,
+            false => time_spread - secs_elapsed
+        };
+        let max_make_per_step = 5; // TODO move to config
+        let min_sleep_step = 10;
+        //
+        let max_make = std::cmp::min(need_make, max_make_per_step);
+        //
+        let mut sleep_step = match secs_left.eq(&0) {
+            true => 1,
+            false => secs_left / need_make
+        };
+        if sleep_step.eq(&0) { sleep_step = 1; }
+        info!("{}", min_sleep_step <= sleep_step);
+        match min_sleep_step.le(&sleep_step) {
+            true => return 1,
+            false => {
+                info!("{} {}", min_sleep_step, sleep_step);
+                let need_do_required = min_sleep_step / sleep_step;
+                return std::cmp::min(need_do_required, max_make)
             }
-        };
-        let need_do: u64 = match time_left > 0 {
-            true => time_need / time_left,
-            false => need_make
-        };
-        info!("Need do now: {}", need_do);
-        need_do
+        }
     }
 
     fn check_done(&self, task: &mut BotTask) -> bool {

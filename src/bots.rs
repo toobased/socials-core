@@ -331,6 +331,31 @@ impl Bot {
     }
 }
 
+impl From<BotCreate> for Bot {
+    fn from(v: BotCreate) -> Self {
+        let status = match v.make_ready { true => BotStatus::Ready, false => BotStatus::Configure };
+        Bot {
+            id: bson::Uuid::new(),
+            social_id: v.social_id,
+            username: v.username,
+            password: v.password,
+            access_token: v.access_token,
+            date_created: SystemTime::now(),
+            date_updated: SystemTime::now(),
+            last_used: None,
+            rest_until: v.rest_until,
+            actions_rest: BotActionsRest::default(),
+            platform: v.platform,
+            status,
+            created_source: None,
+            platform_data: BotPlatformData::init(),
+            extra: BotExtra::init(),
+            error: None,
+            gender: v.gender,
+        }
+    }
+}
+
 impl DbActions for Bot {
     type Query = BotQuery;
     fn get_collection(&self, db: &SocialsDb) -> mongodb::Collection<Self> {
