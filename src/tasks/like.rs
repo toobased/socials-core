@@ -116,7 +116,7 @@ impl TaskAction for LikeAction {
         let time_now = SystemTime::now();
         let date_created = task.date_created;
         let time_spread = self.data.time_spread;
-        if self.stats.like_count.gt(&self.data.like_count) { 
+        if self.stats.like_count.gt(&self.data.like_count) {
             task.next_run_time = None;
             task.set_done();
             return

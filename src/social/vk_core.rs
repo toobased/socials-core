@@ -88,8 +88,10 @@ impl VkCore {
             None => Err(TaskError::invalid_data(Some("No target data. No resource link"))),
             Some(v) => match SocialPost::get_post_by_url(&SocialPlatform::Vk, v).await {
                 Ok(d) => {
-                    action.data.owner_id = d.owner_id;
-                    action.data.item_id = d.post_id;
+                    // info!("d is {:#?}", d);
+                    action.data.owner_id = d.owner_id.clone();
+                    action.data.item_id = d.post_id.clone();
+                    action.extra.post = Some(d);
                     Ok(true)
                 }
                 Err(e) => Err(e.into())
@@ -228,6 +230,7 @@ impl SocialCore for VkCore {
                             task.get_fresh(db).await.unwrap(); // TODO
                             let mut action: LikeAction = task.action.clone()
                                 .try_into().ok().unwrap(); // TODO handle error
+                            action.calc_next_time_run(task);
                             action.stats.like_count += 1;
 
                             if task.is_testing() && !action.is_testing_add_used() {

@@ -1,4 +1,5 @@
 pub mod calc;
+pub mod sleep;
 
 pub mod vk {
     use log::info;
@@ -15,7 +16,12 @@ pub mod vk {
     #[tokio::test]
     pub async fn test_like () {
         info!("-- VK TEST LIKE --");
+        // db
         let db = SocialsDb::new_test_instance().await.unwrap();
+        // logging
+        env_logger::try_init().ok();
+        log::set_max_level(log::LevelFilter::Info);
+
         make_like_task(&db, RESOURCE_LINK_FAIL, 5, true, false).await;
         make_like_task(&db, RESOURCE_LINK_SUCESS, 1, false, true).await;
         make_like_task(&db, RESOURCE_LINK_SUCESS, 5, false, false).await;
@@ -26,10 +32,6 @@ pub mod vk {
         should_fail: bool, should_finish: bool
     ) {
         let token: String = std::env::var("vk_test_access_token").unwrap();
-        // db
-        // logging
-        env_logger::try_init().ok();
-        log::set_max_level(log::LevelFilter::Info);
         // clean dbs
         clean_tasks_db(&db).await;
         clean_bots_db(&db).await;
@@ -38,7 +40,7 @@ pub mod vk {
         // inserting data
         for _i in 0..10 { insert_test_bot(&db, &token, &PLATFORM).await; }
         // insert tasks
-        for _i in 0..1 { insert_like_task(&db, ITEM_ID, OWNER_ID, resource_link, &PLATFORM, count).await; }
+        for _i in 0..1 { insert_like_task(&db, ITEM_ID, OWNER_ID, resource_link, &PLATFORM, count, 0).await; }
         // making task
         for _i in 0..6 {
             let mut q = BotTaskQuery::new();
@@ -64,5 +66,4 @@ pub mod vk {
             assert_eq!(action.stats.like_count == count, true);
         };
     }
-
 }

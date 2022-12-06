@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::info;
 use vk_client::{wall::{response::WallPost, types::{WallPostLike, WallPostRepost, WallPostView}}, client::VkClient};
 
 use crate::social::{post::{SocialPost, SocialPostMetric, SocialPostActions, SocialPostParseData}, errors::SocialError};
@@ -64,6 +65,7 @@ impl SocialPostActions for VkCore {
 
     async fn get_post_by_data(&self, d: &SocialPostParseData)
     -> Result<SocialPost, SocialError> {
+        info!("[VkCore `get_post_by_data`]");
         let msg = format!("VkCore fail to get post {:#?}", d);
         let e = Err(SocialError::get_post(Some(&msg)));
         // FIXME change to add - only when its group
@@ -74,6 +76,7 @@ impl SocialPostActions for VkCore {
         };
         let client = VkClient::init_admin();
         let res = vk_client::wall::get_by_id(&client, q).await;
+        // info!("[VkCore `get_post_by_data`] res is {:#?}", res);
         match res {
             Err(_) => e,
             Ok(r) => match r.get(0) {

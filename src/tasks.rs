@@ -370,6 +370,9 @@ impl BotTask {
             return
         };
         self.check_calc_next_time_run();
+
+        self.update_db(&db).await.unwrap();
+
         let need_run = self.need_run();
         info!("Need run task: {}", need_run);
         if need_run == false {
