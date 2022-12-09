@@ -2,7 +2,7 @@ use std::time::{SystemTime, Duration};
 
 use log::info;
 
-use crate::{db::SocialsDb, tests::db_helpers::{clean_tasks_db, clean_bots_db, clean_events_db, insert_like_task}, social::SocialPlatform, tasks::BotTaskQuery};
+use crate::{db::SocialsDb, tests::db_helpers::{clean_tasks_db, clean_bots_db, clean_events_db, insert_like_task, insert_test_bot}, social::SocialPlatform, tasks::BotTaskQuery};
 
 static ITEM_ID: &str = "";
 static OWNER_ID: &str = "";
@@ -26,7 +26,9 @@ pub async fn test_task_sleep (db: &SocialsDb, time_spread: u64) {
     clean_bots_db(&db).await;
     clean_events_db(&db).await;
     // insert tasks
-    for _i in 0..1 { insert_like_task(&db, ITEM_ID, OWNER_ID, RESOURCE_LINK_SUCESS, &PLATFORM, 8, time_spread).await; }
+    for _i in 0..1 { insert_like_task(&db, ITEM_ID, OWNER_ID, RESOURCE_LINK_SUCESS, &PLATFORM, 18, time_spread).await; }
+    // insert bots
+    for _i in 0..10 { insert_test_bot(db, "testtoken", &SocialPlatform::Vk).await; }
     // making task
     let mut old_sleep_until = 0;
     let old_now = SystemTime::now();
@@ -47,7 +49,7 @@ pub async fn test_task_sleep (db: &SocialsDb, time_spread: u64) {
             }
         };
     }
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(3)).await;
     // making task
     for _i in 0..1 {
         let mut q = BotTaskQuery::new();
@@ -60,7 +62,7 @@ pub async fn test_task_sleep (db: &SocialsDb, time_spread: u64) {
             .await.unwrap();
         match task {
             None => info!("No task to do"),
-            Some(mut t) => t.make(&db).await
+            Some(mut t) => { t.make(&db).await }
         };
     }
     let q = BotTaskQuery::new();

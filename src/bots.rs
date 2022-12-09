@@ -168,6 +168,7 @@ impl Bot {
         action: &impl TaskAction,
         db: &SocialsDb,
     ) -> &mut Self {
+        self.update_used();
         // TODO fix items len to total
         // 24hr limit check
         let l24 = action.bot_24hr_limit_sleep();
@@ -239,6 +240,7 @@ impl Bot {
         }
     }
 
+    pub fn update_used (&mut self) -> &mut Self { self.last_used = Some(SystemTime::now()); self }
     pub async fn update_db(
         &mut self,
         db: &SocialsDb,
@@ -358,10 +360,6 @@ impl From<BotCreate> for Bot {
 
 impl DbActions for Bot {
     type Query = BotQuery;
-    fn get_collection(&self, db: &SocialsDb) -> mongodb::Collection<Self> {
-        db.bots()
-    }
-    fn get_id(&self) -> bson::Uuid {
-        self.id
-    }
+    fn get_collection(&self, db: &SocialsDb) -> mongodb::Collection<Self> { db.bots() }
+    fn get_id(&self) -> bson::Uuid { self.id } 
 }
