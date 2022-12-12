@@ -1,4 +1,5 @@
-use crate::{db::SocialsDb, tasks::{TaskActionEnum, watch::{WatchAction, WatchTargetData}, TaskActionType, BotTaskCreate, BotTask}, social::SocialPlatform};
+use crate::{db::{SocialsDb, DbActions}, tasks::{TaskActionEnum, watch::{WatchAction, WatchTargetData}, TaskActionType, BotTaskCreate, BotTask}, social::SocialPlatform};
+use crate::tests::db_helpers::clean_tasks_db;
 
 static VIDEO_LINK: &'static str = "https://www.youtube.com/watch?v=zuL55W3Ivtk";
 
@@ -12,6 +13,9 @@ async fn test_watch() {
 }
 
 pub async fn test_watch_video (db: &SocialsDb) {
+    // clean dbs
+    clean_tasks_db(db).await;
+
     let action = TaskActionEnum::WatchAction(WatchAction {
         data: WatchTargetData {
             watch_count: 2,
@@ -29,5 +33,6 @@ pub async fn test_watch_video (db: &SocialsDb) {
         ..Default::default()
     };
     let mut task = BotTask::create_from(&db, new_task).await;
+    task.insert_db(db).await.unwrap();
     task.make(&db).await;
 }
