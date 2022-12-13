@@ -62,6 +62,8 @@ pub trait SocialCore {
             }
         }
 
+        // take shot
+        if action.settings.take_screenshot { browser.save_shot("watch_shot.png").await.ok(); }
         // click on play btn if its required
         match play_btn_cls {
             None => {},
@@ -90,6 +92,8 @@ pub trait SocialCore {
 
         info!("Fall asleep for {}s", watch_seconds);
         tokio::time::sleep(Duration::from_secs(watch_seconds)).await;
+        // take shot
+        if action.settings.take_screenshot { browser.save_shot("watch_shot_after.png").await.ok(); }
         info!("Closing client");
         browser.close().await;
         Ok(())

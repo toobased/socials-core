@@ -17,6 +17,7 @@ fantoccini = "0.19.3"
 async-trait = "0.1.57"
 webdriver = "0.46.0"
 url = "2.3.1"
+image = "0.24.5"
 
 
 # custom dependencies

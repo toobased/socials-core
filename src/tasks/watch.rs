@@ -38,12 +38,14 @@ pub struct WatchStats {
 }
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WatchSettings {
-    max_watch_spawn: u64
+    pub take_screenshot: bool,
+    pub max_watch_spawn: u64
 }
 
 impl Default for WatchSettings {
     fn default() -> Self {
         Self {
+            take_screenshot: false,
             max_watch_spawn: 4
         }
     }

@@ -1,6 +1,6 @@
 use std::{net::{TcpListener, TcpStream, SocketAddr}, time::{Duration, SystemTime}, env };
 
-use log::debug;
+use log::{debug, info};
 use fantoccini::ClientBuilder;
 use serde_json::json;
 use tokio::process;
@@ -8,10 +8,29 @@ use tokio::process;
 #[cfg(test)]
 pub mod tests;
 
+pub struct BrowserConfig {
+    pub window_width: u64,
+    pub window_height: u64
+}
+
+impl Default for BrowserConfig {
+    fn default() -> Self {
+        Self {
+            window_width: 400,
+            window_height: 900
+        }
+    }
+}
+
+impl BrowserConfig {
+    pub fn window_size (&self) -> (u64, u64) { (self.window_width, self.window_height) }
+}
+
 pub struct BrowserCore {
     webdriver_process: process::Child,
     pub webdriver_socket: SocketAddr,
-    pub client: fantoccini::Client
+    pub client: fantoccini::Client,
+    pub config: BrowserConfig
 }
 
 impl BrowserCore {
@@ -77,6 +96,10 @@ impl BrowserCore {
         let mut client = ClientBuilder::native();
         let mut args: Vec<&str> = Vec::new();
         args.push("-private");
+        args.push("--window-size 400,900");
+        args.push("-purgecaches");
+        args.push("-safe-mode");
+        args.push("--disable-pinch");
         if BrowserCore::is_headless() { args.push("-headless") }
 
         let capabilities = json!({
@@ -108,14 +131,15 @@ impl BrowserCore {
     // TODO handle error
     pub async fn init () -> Self {
         let addr = BrowserCore::get_free_socket().expect("Cant get free port");
-        debug!("Socket will be used: {}", addr.to_string());
+        info!("Socket will be used: {}", addr.to_string());
         let webdriver = Self::init_driver(&addr);
         BrowserCore::wait_driver_initialized(&addr).await;
         Self {
             webdriver_process: webdriver,
             webdriver_socket: addr,
             // listener,
-            client: Self::init_client(&addr).await
+            client: Self::init_client(&addr).await,
+            config: BrowserConfig::default()
         }
     }
 
@@ -132,5 +156,11 @@ impl BrowserCore {
         let mut process = self.webdriver_process;
         BrowserCore::close_client(self.client).await;
         BrowserCore::close_webdriver(&mut process).await;
+    }
+
+    pub async fn save_shot(&self, path: &str) -> image::ImageResult<()> {
+        let shot_buffer_encoded = self.client.screenshot().await.unwrap();
+        let b = image::load_from_memory(&shot_buffer_encoded).unwrap();
+        b.save(path)
     }
 }
