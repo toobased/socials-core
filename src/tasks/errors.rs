@@ -66,6 +66,12 @@ impl TaskError {
     pub fn unknown (msg: Option<&str>, detailed: Option<&str>) -> Self {
         Self::new(TaskErrorKind::Unknown, msg, detailed)
     }
+
+    pub fn with_machine_info (&mut self) -> &mut Self {
+        let hst = gethostname::gethostname();
+        self.detail_msg.push_str(hst.to_str().unwrap_or("unknown"));
+        self
+    }
 }
 
 impl fmt::Display for TaskError {

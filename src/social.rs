@@ -57,6 +57,7 @@ pub trait SocialCore {
         match client.goto(link).await {
             Ok(_) => {},
             Err(_) => {
+                browser.save_shot("error_go_link.png").await.ok();
                 browser.close().await;
                 return Err(TaskError::incorrect_link(link))
             }
@@ -71,6 +72,7 @@ pub trait SocialCore {
                 match client
                     .find(Locator::Css(btn_cls)).await {
                         Err(_) => {
+                            browser.save_shot("error_find_click_btn.png").await.ok();
                             browser.close().await;
                             return Err(TaskError::action_error(
                                 Some("Cant find video play btn element"),
@@ -81,6 +83,7 @@ pub trait SocialCore {
                             match e.click().await {
                                 Ok(_) => {},
                                 Err(_) => {
+                                    browser.save_shot("error_click_btn.png").await.ok();
                                     browser.close().await;
                                     return Err(TaskError::element_click(Some("Cant click on video play btn")))
                                 }

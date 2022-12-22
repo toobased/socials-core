@@ -2,6 +2,7 @@ use crate::{db::{SocialsDb, DbActions}, tasks::{TaskActionEnum, watch::{WatchAct
 use crate::tests::db_helpers::clean_tasks_db;
 
 static VIDEO_LINK: &'static str = "https://www.youtube.com/watch?v=zuL55W3Ivtk";
+static INCORRECT_VIDEO_LINK: &'static str = "https://www.youtube.com/watch?v=zuL55W3asdf";
 
 #[tokio::test]
 async fn test_watch() {
@@ -9,10 +10,17 @@ async fn test_watch() {
     log::set_max_level(log::LevelFilter::Info);
     let db = SocialsDb::new_test_instance().await.unwrap();
 
-    test_watch_video(&db).await;
+    test_watch_video(&db, VIDEO_LINK, true, false).await;
+
+    test_watch_video(&db, INCORRECT_VIDEO_LINK, false, true).await;
 }
 
-pub async fn test_watch_video (db: &SocialsDb) {
+pub async fn test_watch_video (
+    db: &SocialsDb,
+    link: &str,
+    expect_done: bool,
+    expect_err: bool
+) {
     // clean dbs
     clean_tasks_db(db).await;
 
@@ -21,7 +29,7 @@ pub async fn test_watch_video (db: &SocialsDb) {
             watch_count: 2,
             watch_seconds: 2,
             time_spread: 0,
-            resource_link: VIDEO_LINK.to_string(),
+            resource_link: link.to_string(),
             ..Default::default()
         },
         settings: WatchSettings {
@@ -39,5 +47,6 @@ pub async fn test_watch_video (db: &SocialsDb) {
     let mut task = BotTask::create_from(&db, new_task).await;
     task.insert_db(db).await.unwrap();
     task.make(&db).await;
-    assert_eq!(task.is_done(), true, "Task is not done");
+    assert_eq!(task.is_done() == expect_done, true, "Task condition done not match");
+    assert_eq!(task.is_error() == expect_err, true, "Task condition error not match");
 }
