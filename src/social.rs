@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use fantoccini::Locator;
 use log::info;
@@ -65,6 +65,7 @@ pub trait SocialCore {
 
         // take shot
         if action.settings.take_screenshot { browser.save_shot("watch_shot.png").await.ok(); }
+
         // click on play btn if its required
         match play_btn_cls {
             None => {},
@@ -80,14 +81,24 @@ pub trait SocialCore {
                             ))
                         }
                         Ok(e) => {
-                            match e.click().await {
-                                Ok(_) => {},
-                                Err(_) => {
-                                    browser.save_shot("error_click_btn.png").await.ok();
-                                    browser.close().await;
-                                    return Err(TaskError::element_click(Some("Cant click on video play btn")))
+                            let error_time = SystemTime::now().checked_add(Duration::from_secs(10)).unwrap();
+                            let sleep_interval = Duration::from_secs(1);
+
+                            loop {
+                                match e.click().await {
+                                    Ok(_) => { break; },
+                                    Err(_) => {
+                                        if SystemTime::now().gt(&error_time) {
+                                            browser.save_shot("error_click_btn.png").await.ok();
+                                            browser.close().await;
+                                            return Err(TaskError::element_click(Some("Cant click on video play btn")))
+                                        } else {
+                                            tokio::time::sleep(sleep_interval).await;
+                                        }
+                                    }
                                 }
                             }
+
                         }
                     }
             }
