@@ -34,7 +34,7 @@ pub async fn test_crud() {
 pub async fn remove_bots(db: &SocialsDb) {
     SocialsDb::delete_many(
         &BotQuery::default(), &db.bots()
-    ).await.expect("Some error while deleting");
+    ).await.expect("Some error while deleting bots");
 }
 
 pub async fn add_bot (db: &SocialsDb, count: u32) {
