@@ -11,7 +11,7 @@ use crate::{
     db::{errors::DbError, DbQuery, SocialsDb, DbActions},
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
-        yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost,
+        yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost, rutube_core::RutubeCore,
     }, bots::{BotLimitSleep, Bot}, utils::mdb_cond_time,
 };
 
@@ -387,12 +387,14 @@ impl BotTask {
         let ok_core = OkCore::new();
         let yt_core = YtCore::new();
         let dzen_core = DzenCore::new();
+        let rutube_core = RutubeCore::new();
 
         match self.platform {
             SocialPlatform::Vk => vk_core.make_action(self, db).await,
             SocialPlatform::Ok => ok_core.make_action(self, db).await,
             SocialPlatform::Youtube => yt_core.make_action(self, db).await,
             SocialPlatform::Dzen => dzen_core.make_action(self, db).await,
+            SocialPlatform::Rutube => rutube_core.make_action(self, db).await,
             _ => info!("{:#?} not implemented yet", self.platform),
         }
         if self.check_done() { self.update_db(&db).await.unwrap(); return };

@@ -20,6 +20,7 @@ pub mod yt_core;
 pub mod vk_core;
 pub mod ok_core;
 pub mod dzen_core;
+pub mod rutube_core;
 
 pub trait SocialCoreConfig {
     fn video_play_btn_cls(&self) -> Option<&String> { None }
@@ -147,7 +148,7 @@ pub trait SocialCore {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum SocialPlatform { Unspecified, Vk, Ok, Instagram, Youtube, Dzen }
+pub enum SocialPlatform { Unspecified, Vk, Ok, Instagram, Youtube, Dzen, Rutube }
 
 impl Default for SocialPlatform {
     fn default() -> Self { Self::Unspecified }
