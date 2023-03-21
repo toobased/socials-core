@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType, like::LikeAction, ActionExtra}, db::{SocialsDb, DbFindResult, DbActions, DummyQuery}, social::{post::SocialPost, SocialPlatform}};
+use crate::{tasks::{BotTaskQuery, BotTaskCreate, BotTask, TaskActionType, TaskActionEnum, BotTaskType, like::{LikeAction, LikeTargetData}, ActionExtra, TaskTarget}, db::{SocialsDb, DbFindResult, DbActions, DummyQuery}, social::{post::SocialPost, SocialPlatform}};
 use crate::db::DbQuery;
 
 #[tokio::test]
@@ -25,6 +25,9 @@ pub async fn test_tasks_crud() {
 
     // test create with extra
     test_tasks_with_extra(&db).await;
+
+    // test task validation limits
+    test_task_validation_limits(&db).await
 }
 
 #[tokio::test]
@@ -61,12 +64,37 @@ pub async fn test_tasks_with_extra_vk(db: &SocialsDb) {
     task.insert_db(db).await.unwrap();
 }
 
+pub async fn test_task_validation_limits (db: &SocialsDb) {
+    let mut task = BotTaskCreate {
+        platform: SocialPlatform::Vk,
+        ..Default::default()
+    };
+    let action = LikeAction {
+        target: TaskTarget::Post,
+        data: LikeTargetData {
+            like_count: 20,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    task.action = TaskActionEnum::LikeAction(action);
+    let is_valid = task.action.validate_limits(&task.platform, db).await;
+    info!("is_valid is {:?}", is_valid);
+    assert_eq!(is_valid.is_err(), true)
+}
+
 pub async fn db_create_task_type(db: &SocialsDb) {
     let traw = r#"{
         "action_type": "Watch",
         "name": "Watch action",
         "targets": [
-            {"target": "Video", "platforms": ["Youtube", "Dzen"]}
+            {
+                "target": "Video",
+                "platforms": [
+                    { "platform": "Youtube", "count_limit": 500 },
+                    { "platform": "Dzen" }
+                ]
+            }
         ],
         "is_active": true
     }"#;
@@ -74,7 +102,12 @@ pub async fn db_create_task_type(db: &SocialsDb) {
         "action_type": "Like",
         "name": "Like action",
         "targets": [
-            {"target": "Post", "platforms": ["Vk"]}
+            {
+                "target": "Post",
+                "platforms": [
+                    { "platform": "Vk", "count_limit": 3 }
+                ]
+            }
         ],
         "is_active": true
     }"#;

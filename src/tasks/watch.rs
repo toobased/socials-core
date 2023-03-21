@@ -1,11 +1,12 @@
 use std::time::{SystemTime, Duration};
 
+use async_trait::async_trait;
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
-use crate::browser_core::BrowserCore;
+use crate::{browser_core::BrowserCore, social::{SocialPlatform, vk_core::VkCore}, db::SocialsDb};
 
-use super::{TaskAction, BotTask, TaskTarget, TaskActionType};
+use super::{TaskAction, BotTask, TaskTarget, TaskActionType, errors::TaskError, BotTaskTypeQuery, BotTaskType};
 
 // use super::{TaskAction, BotTask};
 
@@ -61,7 +62,48 @@ pub struct WatchAction {
     pub settings: WatchSettings
 }
 
+#[async_trait]
 impl TaskAction for WatchAction {
+
+    // TODO simplify, refactor
+    async fn validate_limits(&self, platform: &SocialPlatform, db: &SocialsDb) -> Result<bool, TaskError> {
+        let mut q = BotTaskTypeQuery::default();
+        q.with_action_type(&self.action_type());
+        let task_type = SocialsDb::find::<BotTaskType, BotTaskTypeQuery>(&q, &db.task_types()).await;
+        match task_type {
+            // HANDLE DB ERROR -> TaskError
+            Err(e) => Err(e.into()),
+            Ok(t) => {
+                // NO RECORD FOR `SELF.ACTION_TYPE` FOUND, return true
+                if t.items.len() == 0 {  return Ok(true) }
+                let task_type = t.items.get(0).unwrap();
+                let limits = task_type.get_target_platform_limits(&self.target, platform);
+                match limits {
+                    None => return Ok(true),
+                    Some(l) => {
+                        // CHECK COUNT LIMITS
+                        if l.count_limit.is_some() {
+                            let c = l.count_limit.unwrap();
+                            if self.data.watch_count > c.into() {
+                                return Err(TaskError::invalid_count_limit(
+                                    Some(format!("allowed: {}, specified: {}", c, self.data.watch_count).as_str())
+                                ))
+                            }
+                        }
+                    }
+                };
+                Ok(true)
+            }
+        }
+    }
+
+    async fn validate_assign_data(&mut self, platform: &SocialPlatform) -> Result<bool, TaskError> {
+        match platform {
+            SocialPlatform::Vk => VkCore::validate_watch_data(self).await,
+            _ => Ok(true)
+        }
+        // TODO check if post already present in task, get data from it
+    }
 
     fn action_type(&self) -> TaskActionType { TaskActionType::Watch }
     fn target(&self) -> TaskTarget { self.target.clone() }

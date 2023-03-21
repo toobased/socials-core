@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::to_value;
 
 use crate::{
-    db::{errors::DbError, DbQuery, SocialsDb, DbActions},
+    db::{errors::DbError, DbQuery, SocialsDb, DbActions, DbFindResult},
     social::{
         dzen_core::DzenCore, ok_core::OkCore, source::SocialSource, vk_core::VkCore,
         yt_core::YtCore, SocialCore, SocialPlatform, post::SocialPost, rutube_core::RutubeCore,
@@ -28,6 +28,17 @@ pub mod events;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TaskTarget { Dummy, Video, Post, User, Group }
+impl ToString for TaskTarget {
+    fn to_string(self: &Self) -> String {
+        match self {
+            Self::Dummy => "Dummy".to_string(),
+            Self::Video => "Video".to_string(),
+            Self::Post=> "Post".to_string(),
+            Self::User => "User".to_string(),
+            Self::Group => "Group".to_string(),
+        }
+    }
+}
 
 impl Default for TaskTarget {
     fn default() -> Self { Self::Dummy }
@@ -35,6 +46,15 @@ impl Default for TaskTarget {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TaskActionType { Like, Watch, Dummy }
+impl ToString for TaskActionType {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Like => "Like".to_string(),
+            Self::Watch => "Watch".to_string(),
+            Self::Dummy => "Dummy".to_string()
+        }
+    }
+}
 
 impl Default for TaskActionType {
     fn default() -> Self {
@@ -240,6 +260,14 @@ impl TaskActionEnum {
             _ => Ok(true)
         }
     }
+
+    pub async fn validate_limits(&self, platform: &SocialPlatform, db: &SocialsDb) -> Result<bool, TaskError> {
+        match self {
+            Self::LikeAction(a) => a.validate_limits(platform, db).await,
+            Self::WatchAction(a) => a.validate_limits(platform, db).await,
+            _ => Ok(true)
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -281,6 +309,7 @@ impl BotTask {
     pub fn is_testing (&self) -> bool { return self.options.is_testing }
     pub fn is_error(&self) -> bool { match self.error { Some(_) => true, None => false, } }
 
+    /// Set task to sleep, no more bots available to process it
     pub fn sleep_no_bots(&mut self, sleep: Option<Duration>) -> &mut Self {
         let now = SystemTime::now();
         let sleep = sleep.unwrap_or(Duration::from_secs(300));
@@ -412,6 +441,11 @@ impl BotTask {
     }
     pub fn calc_next_time_run(&mut self) { TaskActionEnum::calc_next_time_run(self) }
 
+    pub async fn validate (&self, db: &SocialsDb) -> Result<bool, TaskError> {
+        self.action.validate_limits(&self.platform, db).await
+        // TODO more validation here
+    }
+
     // TODO convert into result?
     pub async fn create_from(db: &SocialsDb, t: BotTaskCreate) -> BotTask {
         let social_source = match t.social_source_id {
@@ -481,6 +515,11 @@ impl DbActions for BotTask {
 #[async_trait]
 pub trait TaskAction {
 
+    async fn validate_limits(&self, _platform: &SocialPlatform, _db: &SocialsDb) -> Result<bool, TaskError> {
+        warn!("Call `validate_limits` from  `TaskAction` trait. Not implemented");
+        Ok(true)
+    }
+
     async fn validate_assign_data(&mut self, _platform: &SocialPlatform) -> Result<bool, TaskError> {
         warn!("Call bot sleep from TaskAction. Not implemented");
         Ok(true)
@@ -513,12 +552,19 @@ pub trait TaskAction {
     fn use_browser(&self) -> bool { false }
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct TaskTargetPlatformConfig {
+    pub platform: SocialPlatform,
+    pub count_limit: Option<u32>,
+    pub bot_limit: Option<u32>,
+    pub device_limit: Option<u32>
+}
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct BotTaskTypeTarget {
     pub target: TaskTarget,
     #[serde(default="Vec::new")]
-    pub platforms: Vec<SocialPlatform>
+    pub platforms: Vec<TaskTargetPlatformConfig>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -545,4 +591,44 @@ impl Default for BotTaskType {
             is_active: false
         }
     }
+}
+
+impl BotTaskType {
+    fn get_target_platform_limits (&self, target: &TaskTarget, platform: &SocialPlatform) ->
+        Option<&TaskTargetPlatformConfig> {
+        let target_item = self.targets.iter()
+            .find(|t| { t.target.to_string().eq(&target.to_string()) });
+        match target_item {
+            None => None,
+            Some(v) => {
+                let platform_limits = v.platforms.iter()
+                    .find(|p| { p.platform.to_string().eq(&platform.to_string())});
+                platform_limits
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct BotTaskTypeQuery {
+    pub action_type: Option<TaskActionType>
+}
+
+impl BotTaskTypeQuery {
+    pub fn with_action_type(&mut self, a: &TaskActionType) -> &mut Self { self.action_type = Some(a.clone()); self }
+}
+
+impl DbQuery for BotTaskTypeQuery {
+    fn collect_filters(&self) -> Document {
+        let mut f = Document::new();
+        if let Some(v) = &self.action_type { f.insert("action_type", v.to_string()); }
+        f
+    }
+}
+
+impl DbActions for BotTaskType {
+    type Query = BotTaskTypeQuery;
+
+    fn get_id(&self) -> bson::Uuid { self.id.clone() }
+    fn get_collection(&self,db: &SocialsDb) -> Collection<Self> { db.task_types() }
 }

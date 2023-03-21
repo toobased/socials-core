@@ -75,7 +75,7 @@ impl Default for DummyQuery {
 }
 impl DbQuery for DummyQuery {}
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct DbFindResult<T> {
     pub items: Vec<T>,
     pub total: u64

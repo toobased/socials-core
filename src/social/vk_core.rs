@@ -8,6 +8,7 @@ use crate::bots::errors::BotError;
 use crate::bots::query::BotQuery;
 use crate::db::DbActions;
 use crate::social::SocialPlatform;
+use crate::tasks::watch::WatchAction;
 use crate::tasks::{TaskActionEnum, TaskActionType};
 use crate::tasks::errors::TaskError;
 use crate::tasks::events::ActionEvent;
@@ -97,6 +98,10 @@ impl VkCore {
                 Err(e) => Err(e.into())
             }
         }
+    }
+
+    pub async fn validate_watch_data (_action: &mut WatchAction) -> Result<bool, TaskError> {
+        Ok(true)
     }
 }
 

@@ -150,6 +150,20 @@ pub trait SocialCore {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum SocialPlatform { Unspecified, Vk, Ok, Instagram, Youtube, Dzen, Rutube }
 
+impl ToString for SocialPlatform {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Unspecified => "Unspecified".to_string(),
+            Self::Vk => "Vk".to_string(),
+            Self::Ok => "Ok".to_string(),
+            Self::Instagram => "Instagram".to_string(),
+            Self::Youtube => "Youtube".to_string(),
+            Self::Dzen => "Dzen".to_string(),
+            Self::Rutube => "Rutube".to_string(),
+        }
+    }
+}
+
 impl Default for SocialPlatform {
     fn default() -> Self { Self::Unspecified }
 }

@@ -68,5 +68,5 @@ pub async fn test_task_sleep (db: &SocialsDb, time_spread: u64) {
     let q = BotTaskQuery::new();
     let task = SocialsDb::find_one(&q, &db.bots_tasks()).await.unwrap().unwrap();
     let fresh_sleep_until = task.next_run_time.unwrap().duration_since(old_now).unwrap().as_secs();
-    assert_eq!(fresh_sleep_until > old_sleep_until, true, "task is not setting sleep after interation?");
+    assert_eq!(fresh_sleep_until > old_sleep_until, true, "task is not setting sleep after interaction?");
 }

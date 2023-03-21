@@ -2,12 +2,13 @@ use core::fmt;
 
 use serde::{Serialize, Deserialize};
 
-use crate::social::errors::SocialError;
+use crate::{social::errors::SocialError, db::errors::DbError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TaskErrorKind {
     Db,
     IncorrectData,
+    Limits,
     ActionError,
     Dummy,
     NotImplemented,
@@ -54,8 +55,16 @@ impl TaskError {
         Self::new(TaskErrorKind::IncorrectData, Some("Invalid action data"), detail)
     }
 
+    pub fn invalid_count_limit(detail: Option<&str>) -> Self {
+        Self::new(TaskErrorKind::Limits, Some("Reach task limits"), detail)
+    }
+
     pub fn social_error(msg: Option<&str>, detail: Option<&str>) -> Self {
         Self::new(TaskErrorKind::IncorrectData, msg, detail)
+    }
+
+    pub fn db_error(msg: Option<&str>, detail: Option<&str>) -> Self {
+        Self::new(TaskErrorKind::Db, msg, detail)
     }
 
     pub fn dummy () -> Self {
@@ -87,3 +96,10 @@ impl From<SocialError> for TaskError {
         Self::social_error(Some(&v.msg), Some(&v.detail_msg))
     }
 }
+
+impl From<DbError> for TaskError {
+    fn from(v: DbError) -> Self {
+        Self::db_error(Some(&v.msg), Some(&v.detail))
+    }
+}
+

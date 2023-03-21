@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
 
-use crate::{bots::BotLimitSleep, utils::pretty_duration, social::{SocialPlatform, vk_core::VkCore}};
+use crate::{bots::BotLimitSleep, utils::pretty_duration, social::{SocialPlatform, vk_core::VkCore}, db::SocialsDb};
 
-use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType, errors::TaskError, ActionExtra};
+use super::{TaskAction, BotTask, TaskTarget, TaskActionEnum, TaskActionType, errors::TaskError, ActionExtra, BotTaskType, BotTaskTypeQuery};
 
 #[cfg(test)]
 pub mod tests;
@@ -80,6 +80,37 @@ impl LikeAction {
 
 #[async_trait]
 impl TaskAction for LikeAction {
+
+    async fn validate_limits(&self, platform: &SocialPlatform, db: &SocialsDb) -> Result<bool, TaskError> {
+        let mut q = BotTaskTypeQuery::default();
+        q.with_action_type(&self.action_type());
+        let task_type = SocialsDb::find::<BotTaskType, BotTaskTypeQuery>(&q, &db.task_types()).await;
+        match task_type {
+            // HANDLE DB ERROR -> TaskError
+            Err(e) => Err(e.into()),
+            Ok(t) => {
+                // NO RECORD FOR `SELF.ACTION_TYPE` FOUND, return true
+                if t.items.len() == 0 {  return Ok(true) }
+                let task_type = t.items.get(0).unwrap();
+                let limits = task_type.get_target_platform_limits(&self.target, platform);
+                match limits {
+                    None => return Ok(true),
+                    Some(l) => {
+                        // CHECK COUNT LIMITS
+                        if l.count_limit.is_some() {
+                            let c = l.count_limit.unwrap();
+                            if self.data.like_count > c.into() {
+                                return Err(TaskError::invalid_count_limit(
+                                    Some(format!("allowed: {}, specified: {}", c, self.data.like_count).as_str())
+                                ))
+                            }
+                        }
+                    }
+                };
+                Ok(true)
+            }
+        }
+    }
 
     async fn validate_assign_data(&mut self, platform: &SocialPlatform) -> Result<bool, TaskError> {
         match platform {
