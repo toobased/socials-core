@@ -24,7 +24,7 @@ gethostname = "0.4.1"
 # custom dependencies
 [dependencies.vk_client]
 git = "https://github.com/toobased/vk-client"
-rev="origin/master"
+rev="origin/dev"
 
 
 [dependencies.uuid]
